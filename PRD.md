@@ -1,0 +1,465 @@
+Restaunax Real-time Order Management Dashboard PRD
+1. Product Overview
+Product Name: Restaunax Order Management DashboardPurpose: To enable wait staff to create and update customer orders and allow managers/owners to monitor order status in real-time, improving restaurant operational efficiency.Objective: Deliver a series of minimum viable products (MVPs) for a secure, scalable, and responsive order management system, developed using Test-Driven Development (TDD) with robust protections against XSS, SQL injection, and proper CORS configuration. Authentication and authorization will follow industry best practices (e.g., OWASP guidelines). The system will run in Docker containers, use PostgreSQL with Prisma and Phinx migrations, and support dynamic theming.
+2. Target Audience
+
+Primary Users: Wait staff (creating and updating orders).  
+Secondary Users: Managers and owners (monitoring order status).  
+Scope: Single restaurant instance tied to the logged-in user’s account. Reporting features are part of MVP 4.
+
+3. MVP Prioritization
+
+MVP 1: Order System – Core functionality for creating, viewing, and updating orders.  
+MVP 2: Login System – Authentication and role-based authorization with best practices.  
+MVP 3: Theming – Dynamic color theming based on user’s restaurant.  
+MVP 4: Reports – Viewable and downloadable order reports.
+
+4. Development Methodology
+
+Test-Driven Development (TDD):  
+Write unit and integration tests before implementation using Jest for backend (API routes, services) and frontend (React components).  
+Ensure >80% test coverage for critical paths (e.g., order CRUD, authentication, authorization, security validations).  
+Tests include security scenarios for XSS, SQL injection, CORS, and authentication/authorization edge cases.  
+Run tests automatically via CI (e.g., GitHub Actions) in Docker environment.
+
+
+
+5. Security Requirements
+
+XSS (Cross-Site Scripting) Prevention:  
+Backend: Sanitize all user inputs (e.g., customerName, item names) using sanitize-html or DOMPurify.  
+Frontend: Use React’s built-in escaping; avoid dangerouslySetInnerHTML unless sanitized.  
+TDD: Tests for sanitization, ensuring malicious scripts (e.g., <script>alert('xss')</script>) are neutralized.
+
+
+SQL Injection Prevention:  
+Use Prisma ORM with parameterized queries.  
+Validate and sanitize inputs before database operations.  
+TDD: Tests for invalid inputs (e.g., SQL injection attempts like '; DROP TABLE orders; --).
+
+
+CORS (Cross-Origin Resource Sharing):  
+Configure Express CORS middleware to allow requests only from the frontend’s origin (e.g., http://localhost:80 in development, specific domain in production).  
+Restrict methods (GET, POST, PATCH) and headers.  
+TDD: Tests for CORS policy enforcement, rejecting unauthorized origins.
+
+
+Authentication and Authorization Best Practices (MVP 2):  
+Authentication:  
+Use JSON Web Tokens (JWT) with strong secrets (256-bit, environment variable).  
+Implement secure password storage with bcrypt (minimum 12 rounds).  
+Enforce strong password policies (8+ characters, mixed case, numbers).  
+Use short-lived access tokens (15-minute expiry) with refresh tokens (7-day expiry).  
+Store refresh tokens in HTTP-only, Secure, SameSite=Strict cookies.  
+Implement rate limiting on login/register endpoints (5 attempts/min/IP).  
+Use HTTPS for all API communications.
+
+
+Authorization:  
+Implement Role-Based Access Control (RBAC) with roles: wait_staff, manager, owner.  
+Enforce least privilege (e.g., wait_staff can only create/update orders).  
+Validate roles and permissions server-side in middleware.  
+Audit user actions (e.g., log order updates with user ID, timestamp).
+
+
+TDD: Tests for token validation, role enforcement, brute-force protection, secure cookie handling.
+
+
+
+6. Key Features and Requirements
+6.1 MVP 1: Order System
+Objective: Enable wait staff to create and update orders and managers/owners to view orders by status, with a secure backend and responsive UI.Components: Backend API, frontend dashboard, PostgreSQL database, Phinx migrations, Docker deployment.
+Backend (Node.js/Express, Prisma, PostgreSQL)
+
+
+
+Feature
+Description
+Details
+
+
+
+GET /orders
+List all orders for the restaurant
+- Returns orders for the restaurant (hardcoded restaurantId in MVP 1).- Query parameter: status (optional; pending, preparing, ready, delivered).- Response: JSON array of order objects.- Security: Sanitize status parameter; CORS restricted to frontend origin; HTTPS required.- TDD: Tests for filtering, empty results, invalid status, XSS attempts, CORS rejection, SQL injection.
+
+
+GET /orders/:id
+Retrieve specific order
+- Returns single order by ID.- Response: JSON order object.- Returns 404 if not found.- Security: Sanitize id; CORS restricted; HTTPS.- TDD: Tests for valid/invalid IDs, 404 handling, XSS in response.
+
+
+PATCH /orders/:id
+Update order status
+- Updates status (allowed: pending → preparing → ready → delivered).- Validates transitions.- Returns updated order or 400 for invalid status.- Security: Sanitize status; CORS restricted; HTTPS.- TDD: Tests for valid/invalid transitions, error responses, SQL injection attempts.
+
+
+POST /orders
+Create new order
+- Creates order via UI.- Accepts JSON payload with order fields.- Returns created order (201 status).- Security: Sanitize customerName, items; validate orderType, status; CORS restricted; HTTPS.- TDD: Tests for valid/invalid payloads, sanitization, XSS/SQL injection prevention.
+
+
+Frontend (React, Material UI)
+
+
+
+Feature
+Description
+Details
+
+
+
+Order Dashboard
+Display orders by status
+- Tabs/sections for pending, preparing, ready, delivered.- Shows: ID, customer name, order type, total, created time.- Polls every 30 seconds.- Security: Escape user inputs (e.g., customerName) in rendering.- TDD: Tests for component rendering, API integration, XSS-safe display.
+
+
+Order Details View
+Show full order details
+- Displays all order fields, including items.- Dropdown/button to update status (PATCH).- Security: Escape item names, customerName.- TDD: Tests for data display, status update flow, XSS prevention.
+
+
+Order Creation Form
+Create new orders
+- Form for customer name, order type, items (add/remove dynamically).- Submits to POST /orders.- Validates input (e.g., non-empty fields).- Security: Client-side validation; escape inputs before display.- TDD: Tests for form validation, submission, XSS handling.
+
+
+Responsive Design
+Support multiple devices
+- Material UI grid for desktops (1920x1080), tablets (1024x768), phones (375x667).- Touch-friendly buttons.- Security: No impact on XSS/SQL; CORS not applicable.- TDD: Tests for responsive rendering (e.g., via Testing Library).
+
+
+Data Storage (PostgreSQL, Prisma, Phinx)
+
+
+
+Feature
+Description
+Details
+
+
+
+PostgreSQL
+Persistent storage
+- Stores orders.- Prisma ORM with parameterized queries.- Runs in Docker container.- Security: Parameterized queries prevent SQL injection.- TDD: Tests for CRUD operations, injection prevention.
+
+
+Phinx Migrations
+Schema management
+- Migrations for orders, order_items tables.- Command: phinx migrate.- Security: No user input in migrations.- TDD: Tests for migration integrity.
+
+
+Seed Script
+Generate 10-15 mock orders
+- Creates orders with varied statuses/types.- Uses Phinx seeders (phinx seed:run).- Security: Sanitize seed data.- TDD: Tests for seed data consistency, XSS-safe data.
+
+
+Order Schema
+{
+  "id": "string", // UUID
+  "restaurantId": "string", // UUID (hardcoded for MVP 1)
+  "customerName": "string", // e.g., "Alex Johnson"
+  "orderType": "string", // Enum: ["delivery", "pickup"]
+  "items": [
+    {
+      "id": "string", // UUID
+      "name": "string", // e.g., "Margherita Pizza"
+      "quantity": "number", // e.g., 2
+      "price": "number" // e.g., 15.99
+    }
+  ],
+  "status": "string", // Enum: ["pending", "preparing", "ready", "delivered"]
+  "total": "number", // e.g., 42.50
+  "createdAt": "string" // ISO 8601, e.g., "2024-05-07T18:30:00Z"
+}
+
+Sample Seed Order
+{
+  "id": "ord_123456",
+  "restaurantId": "rest_1",
+  "customerName": "Alex Johnson",
+  "orderType": "delivery",
+  "status": "pending",
+  "total": 42.5,
+  "createdAt": "2024-05-07T18:30:00Z",
+  "items": [
+    {
+      "id": "item_1",
+      "name": "Margherita Pizza",
+      "quantity": 2,
+      "price": 15.99
+    },
+    {
+      "id": "item_2",
+      "name": "Caesar Salad",
+      "quantity": 1,
+      "price": 8.99
+    }
+  ]
+}
+
+Assumptions for MVP 1:
+
+No authentication (restaurantId hardcoded; secured in MVP 2).  
+Security: XSS sanitized with sanitize-html; SQL injection prevented via Prisma; CORS allows frontend origin only (http://localhost:80); HTTPS enforced.
+
+6.2 MVP 2: Login System
+Objective: Implement secure authentication and role-based authorization following best practices, with protections against XSS, SQL injection, and proper CORS handling.Components: Authentication endpoints, role-based access, user management.
+Backend
+
+
+
+Feature
+Description
+Details
+
+
+
+POST /login
+Authenticate users
+- Accepts username/password.- Returns JWT access token (15-min expiry) and refresh token (7-day expiry).- Security: Sanitize username with sanitize-html; hash passwords with bcrypt (12 rounds); rate limit to 5 attempts/min/IP (e.g., using express-rate-limit); refresh token in HTTP-only, Secure, SameSite=Strict cookie; CORS restricted; HTTPS required.- TDD: Tests for valid/invalid credentials, token generation, rate limiting, XSS/SQL injection, cookie security.
+
+
+POST /refresh-token
+Refresh access token
+- Accepts refresh token from cookie.- Returns new access token.- Security: Validate refresh token; revoke on mismatch; CORS restricted; HTTPS.- TDD: Tests for token refresh, invalid/expired tokens, security headers.
+
+
+POST /register
+Create users (setup)
+- Creates user with username, password, role, restaurantId.- Enforces strong password policy (8+ chars, mixed case, numbers).- Security: Sanitize username, role; hash password with bcrypt; rate limit; CORS restricted; HTTPS.- TDD: Tests for user creation, duplicate usernames, password policy, injection attempts.
+
+
+Authorization Middleware
+Role-based access
+- Roles: wait_staff (create/update orders), manager (view/update orders), owner (view all orders).- Middleware validates JWT and role.- Logs actions (e.g., order updates with user ID, timestamp) in audit_logs table.- Security: Validate JWT signature, expiry; enforce least privilege; CORS restricted; HTTPS.- TDD: Tests for role restrictions, 401/403 errors, XSS in payloads, audit logging.
+
+
+Frontend
+
+
+
+Feature
+Description
+Details
+
+
+
+Login Page
+User authentication
+- Form for username/password.- Submits to POST /login.- Stores access token in memory (or localStorage for MVP; cookies in production).- Security: Escape form inputs; display sanitized error messages.- TDD: Tests for form validation, login flow, XSS handling.
+
+
+Secured Dashboard
+Restrict access
+- Requires valid JWT.- Redirects to login if unauthorized.- Security: Escape displayed user data (e.g., username).- TDD: Tests for protected routes, XSS-safe rendering.
+
+
+Data Storage
+
+
+
+Feature
+Description
+Details
+
+
+
+User Schema
+Store user data
+- Table: users (id, restaurantId, username, password, role).- Phinx migration for users, audit_logs tables.- Security: Parameterized queries; hashed passwords.- TDD: Tests for user CRUD, injection prevention.
+
+
+User Schema
+{
+  "id": "string", // UUID
+  "restaurantId": "string", // UUID
+  "username": "string",
+  "password": "string", // Hashed (bcrypt)
+  "role": "string" // Enum: ["wait_staff", "manager", "owner"]
+}
+
+Audit Log Schema
+{
+  "id": "string", // UUID
+  "userId": "string", // UUID
+  "action": "string", // e.g., "update_order", "login"
+  "timestamp": "string", // ISO 8601
+  "details": "object" // e.g., { orderId: "ord_123", newStatus: "preparing" }
+}
+
+Assumptions:
+
+Orders tied to user’s restaurantId.  
+Role-based UI deferred to future iterations.  
+Refresh tokens stored in database for revocation.  
+Security: XSS sanitized; SQL injection prevented; CORS restricted; HTTPS enforced.
+
+6.3 MVP 3: Theming
+Objective: Implement dynamic theming based on user’s restaurant, using provided color scheme.Components: Frontend theme system integrated with Material UI.
+
+
+
+Feature
+Description
+Details
+
+
+
+Dynamic Theming
+Apply theme based on restaurantId
+- Themes in /src/themes (e.g., default.js, <restaurantId>.js).- Default theme uses provided colors:   - Primary: Slightly Dark Blue (#2C4A7A)   - Secondary: Slightly Dark Orange (#D97A3A)   - Background: Off-White (#F9FAFB), Light Gray (#E5E7EB)   - Accents: Muted Teal (#4A8B8C), Deep Red (#A8333B).- Theme applied on login based on restaurantId.- Security: Sanitize theme data if user-provided (future-proofing).- TDD: Tests for theme loading, color application, XSS in theme files.
+
+
+Theme Switching
+Support multiple themes
+- Themes stored as JSON/CSS in /src/themes.- Material UI ThemeProvider applies theme.- Security: Validate theme data structure.- TDD: Tests for theme switching, fallback to default.
+
+
+Sample Theme (referenced from prior artifact, ID retained):  
+
+File: default.js (artifact_id: 880c381e-166b-4243-9bb9-0d779ed1c042)  
+Content: Material UI theme with provided colors.
+
+Assumptions:
+
+Theme applied post-login based on restaurantId.  
+Security: Theme files are static; no user input in MVP 3.
+
+6.4 MVP 4: Reports
+Objective: Enable managers/owners to view and download order reports.Components: Backend report endpoints, frontend report UI, downloadable CSVs.
+
+
+
+Feature
+Description
+Details
+
+
+
+Backend
+
+
+
+
+GET /reports/orders
+Generate order report
+- Returns aggregated data (e.g., orders by status, total revenue by day).- Query parameters: startDate, endDate.- Response: JSON with summary data.- Security: Sanitize query parameters; CORS restricted; HTTPS; owner/manager-only.- TDD: Tests for aggregation, date filtering, XSS/SQL injection.
+
+
+GET /reports/orders/download
+Download CSV report
+- Returns CSV file with order data (ID, customerName, orderType, status, total, createdAt).- Security: Sanitize CSV data; CORS restricted; HTTPS; owner/manager-only.- TDD: Tests for CSV format, data accuracy, security.
+
+
+Frontend
+
+
+
+
+Reports Page
+View reports
+- Displays summary (e.g., orders by status, revenue).- Uses Chart.js for visualizations (bar/pie charts).- Date range picker for filtering.- Security: Escape displayed data.- TDD: Tests for chart rendering, filter application, XSS handling.
+
+
+Download Button
+Export report as CSV
+- Button triggers GET /reports/orders/download.- Downloads file (e.g., orders_report.csv).- Security: Sanitize file content.- TDD: Tests for download functionality, XSS prevention.
+
+
+Assumptions:
+
+Reports limited to orders by status and daily revenue.  
+Security: Role-based access (manager/owner); XSS sanitized; CORS restricted.
+
+7. Non-Functional Requirements
+
+Performance: API response time < 200ms for GET, < 500ms for POST/PATCH (100 concurrent users).  
+Scalability: Handle 1,000 orders/day per restaurant.  
+Security:  
+MVP 1: Input sanitization (XSS), Prisma parameterized queries (SQL injection), CORS restricted, HTTPS.  
+MVP 2: JWT with short-lived tokens, refresh tokens in HTTP-only cookies, bcrypt passwords, rate limiting, RBAC, audit logging, CORS, HTTPS.  
+MVP 3-4: Maintain XSS, SQL injection, CORS, HTTPS protections.
+
+
+Reliability: 99% backend uptime; UI handles errors gracefully (Material UI Snackbar).  
+Maintainability:  
+TDD with Jest (>80% coverage).  
+ESLint/Prettier for code quality.  
+Modular structure (routes, services, components).  
+Phinx migrations for database versioning.
+
+
+Responsive Design: Supports desktops (1920x1080), tablets (1024x768), phones (375x667).
+
+8. Technical Stack
+
+Backend: Node.js, Express, Prisma, PostgreSQL, Phinx, JWT, bcrypt, sanitize-html, express-rate-limit, Jest.  
+Frontend: React, Material UI, Axios, React Router, Chart.js (MVP 4), Jest.  
+Deployment: Docker, Docker Compose.  
+Development Tools: ESLint, Prettier, GitHub Actions (CI for tests).
+
+9. Deployment (Docker)
+
+Containers: Frontend (React), backend (Node.js/Express), database (PostgreSQL).  
+Docker Compose: Orchestrates services, ports, volumes, environment variables.  
+Security: Backend container uses HTTPS (self-signed cert in dev, proper cert in prod).  
+TDD: Tests for container startup, service communication, CORS enforcement.
+
+Sample Docker Compose (referenced from prior artifact, ID retained):  
+
+File: docker-compose.yml (artifact_id: f5c4f75b-a374-47aa-b68c-bddf77f806e5)  
+Content: Defines services for frontend, backend, and database.
+
+10. Deliverables
+
+MVP 1: Order system (API, dashboard, order creation/update, seeding).  
+MVP 2: Login system (auth endpoints, RBAC, user management, audit logging).  
+MVP 3: Dynamic theming (theme files, Material UI integration).  
+MVP 4: Reports (API, UI, CSV export).  
+General:  
+OpenAPI/Postman API documentation.  
+Phinx migrations and seeders.  
+Jest test suite (>80% coverage, including XSS, SQL injection, CORS, auth tests).  
+README with setup, run, migration, test, and seed instructions.  
+Docker Compose file for local deployment.
+
+
+
+11. Success Metrics
+
+MVP 1: Wait staff can create/update orders; managers/owners can view orders; tests pass; XSS/SQL injection prevented; CORS enforced.  
+MVP 2: Users can log in; roles restrict access correctly; secure tokens/cookies; tests pass.  
+MVP 3: Theme applies based on restaurantId; UI responsive; tests pass.  
+MVP 4: Reports display/download correctly; charts render; tests pass.  
+General:  
+Order creation/update takes < 10 seconds.  
+No critical ESLint errors; modular code.  
+App runs with docker-compose up without errors.  
+Security tests pass (XSS, SQL injection, CORS, auth).
+
+
+
+12. Assumptions and Constraints
+
+Assumptions:  
+MVP 1 uses hardcoded restaurantId (secured in MVP 2).  
+Polling (30s) for real-time updates; WebSockets deferred.  
+Role-based UI deferred to future iterations.  
+HTTPS enforced via Docker configuration.
+
+
+Constraints:  
+Limited to Node.js/Express, React/Material UI, PostgreSQL.  
+No external integrations in MVPs.  
+Development time assumed 1-2 weeks per MVP.
+
+
+
+13. Future Considerations
+
+WebSockets for real-time updates.  
+Role-specific UI (e.g., simplified for wait staff).  
+Multi-restaurant support.  
+Integration with POS/inventory systems.  
+Advanced security (e.g., multi-factor authentication, session management).
