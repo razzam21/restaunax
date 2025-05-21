@@ -226,9 +226,63 @@ const MyComponent = () => {
 };
 ```
 
+## Audit Logging
+
+The theme system includes comprehensive audit logging to track changes:
+
+1. **Audit Log Structure**:
+   - Each theme change is recorded in the `AuditLog` table
+   - Logs include: user ID, action type, timestamp, and detailed change information
+
+2. **Logged Actions**:
+   - Theme selection changes 
+   - Primary/secondary color updates
+   - Restaurant name updates
+
+3. **Implementation**:
+   - Uses a dedicated `audit-logger` utility for reliability
+   - Two-tier approach (standard Prisma API with SQL fallback)
+   - Ensures audit trail persistence even when theme changes fail
+
+```javascript
+// Example audit log entry for theme change
+{
+  "id": "ac9d6271-d6ec-4046-a930-59a544fbbbc0",
+  "userId": "user_owner_1",
+  "action": "update_restaurant",
+  "details": {
+    "restaurantId": "rest_1",
+    "updatedFields": ["themeId", "primaryColor", "secondaryColor"],
+    "timestamp": "2025-05-21T05:32:48.366Z",
+    "themeId": "rest_2",
+    "primaryColor": "#1A365D",
+    "secondaryColor": "#9C4221"
+  },
+  "createdAt": "2025-05-21T05:32:48.366Z"
+}
+```
+
+## Recent Improvements
+
+1. **Theme Switching Reliability**:
+   - Enhanced theme loading with better fallback mechanisms
+   - Improved error handling throughout the theme system
+   - Fixed edge cases with theme persistence
+
+2. **Audit Log Reliability**:
+   - Implemented a robust audit logging system for theme changes
+   - Added fallback mechanisms for creating audit logs
+   - Enhanced error reporting and debugging for audit logs
+
+3. **User Experience Enhancements**:
+   - Added better feedback for theme saving and errors
+   - Improved theme preview functionality
+   - Enhanced role-based UI elements
+
 ## Future Enhancements
 
 1. **Theme Editor**: Allow restaurant owners to customize their theme beyond selecting from presets
 2. **Dynamic Loading**: Load themes dynamically from a theme store rather than bundling them
 3. **Theme Export/Import**: Allow owners to export/import themes
 4. **Seasonal Themes**: Allow scheduled theme changes for special events or holidays
+5. **Audit Log Viewer**: Add a UI for owners to view theme change history

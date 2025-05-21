@@ -2,7 +2,38 @@
 
 All notable changes to the Restaunax project will be documented in this file.
 
-## [1.1.0] - 2025-05-20
+## [1.2.0] - 2025-05-21
+
+### Added (MVP3: Dynamic Theming)
+- Restaurant-specific theme system with different presets
+- Settings page for restaurant owners to customize their restaurant's theme
+- Theme preview functionality before saving changes
+- Theme selection dropdown with different theme options
+- Dynamic color application throughout the application
+- Role-based access control for theme settings (owner-only)
+- Audit logging system to track theme changes
+- Database schema migration for theme support
+- Theme context for application-wide theme management
+
+### Fixed
+- Audit log creation for restaurant settings updates
+- Theme persistence across sessions
+- Theme application based on restaurant ID
+- Proper error handling and user feedback for theme changes
+
+### Changed
+- Updated Prisma schema with theme-related fields (themeId, primaryColor, secondaryColor)
+- Enhanced README with theme system documentation
+- Added role-based UI elements (settings gear only appears for owners)
+- Improved error handling throughout the theme system
+
+### Tests
+- Added tests for theme context functionality
+- Added tests for settings page access control
+- Added tests to verify theme persistence
+- Integration tests for theme API endpoints
+
+## [1.1.0] - 2025-05-20 (MVP2: Authentication System)
 
 ### Added
 - Menu item management with predefined items
@@ -10,6 +41,11 @@ All notable changes to the Restaunax project will be documented in this file.
 - Restaurant-specific order numbering (format: R1-20250520-001)
 - Alphabetical sorting of menu items in dropdown for easier discovery
 - Auto-fill pricing when selecting menu items
+- Authentication system with JWT tokens
+- Role-based access control (wait_staff, manager, owner)
+- Secure password storage with bcrypt
+- HTTP-only cookies for refresh tokens
+- Basic audit logging for authentication events
 - Comprehensive test coverage for both backend and frontend
 
 ### Fixed
@@ -28,6 +64,7 @@ All notable changes to the Restaunax project will be documented in this file.
 - Added tests for menu item alphabetical sorting
 - Added client-side tests for OrderCard to verify order number display
 - Updated OrderForm tests for the new Autocomplete component
+- Added authentication and authorization tests
 
 ## [1.0.0] - 2025-05-15
 

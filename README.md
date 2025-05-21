@@ -276,11 +276,15 @@ The order number generation has been fully tested to ensure:
 - Token revocation on logout
 
 ### Dynamic Theming System
-- Theme data stored in the Restaurant model
-- Static theme files for Material UI theming
-- ThemeContext for managing theme state
+- Theme data stored in the Restaurant model (themeId, primaryColor, secondaryColor)
+- Static theme files for Material UI theming with different presets (default, rest_1, rest_2)
+- ThemeContext for managing theme state and providing theme-related utilities
+- Settings page for restaurant owners to customize their restaurant's theme
+- Preview functionality before committing theme changes
 - Theme applied automatically based on user's restaurant
 - Theme indicator in the application header
+- Audit logging of theme and settings changes
+- Role-based access control (only owners can modify theme settings)
 
 ### Testing Strategy
 - **Unit Tests**: Individual services and components are tested in isolation
