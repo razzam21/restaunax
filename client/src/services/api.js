@@ -85,7 +85,6 @@ export const orderService = {
   // Get all orders with optional status filter
   getOrders: async (status) => {
     try {
-      console.log(`Making API request to: ${API_URL}/orders with params:`, status ? { status } : {});
       const params = status ? { status } : {};
       const response = await api.get('/orders', { params });
       return response.data;
@@ -98,7 +97,6 @@ export const orderService = {
   // Get a single order by ID
   getOrderById: async (id) => {
     try {
-      console.log(`Making API request to: ${API_URL}/orders/${id}`);
       const response = await api.get(`/orders/${id}`);
       return response.data;
     } catch (error) {
@@ -110,7 +108,6 @@ export const orderService = {
   // Create a new order
   createOrder: async (orderData) => {
     try {
-      console.log(`Making API request to: ${API_URL}/orders with data:`, orderData);
       const response = await api.post('/orders', orderData);
       return response.data;
     } catch (error) {
@@ -122,7 +119,6 @@ export const orderService = {
   // Update order status
   updateOrderStatus: async (id, status) => {
     try {
-      console.log(`Making API request to: ${API_URL}/orders/${id} with status:`, status);
       const response = await api.patch(`/orders/${id}`, { status });
       return response.data;
     } catch (error) {
@@ -153,6 +149,59 @@ export const menuService = {
     } catch (error) {
       console.error(`Error fetching menu item ${id}:`, error);
       throw error;
+    }
+  }
+};
+
+// Restaurant service
+export const restaurantService = {
+  // Get restaurant by ID
+  getRestaurantById: async (id) => {
+    try {
+      const response = await api.get(`/restaurants/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching restaurant ${id}:`, error);
+      throw error;
+    }
+  },
+
+  // Get restaurant theme
+  getRestaurantTheme: async (id) => {
+    try {
+      const response = await api.get(`/restaurants/${id}/theme`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching restaurant theme ${id}:`, error);
+      throw error;
+    }
+  },
+  
+  // Get available themes
+  getAvailableThemes: async () => {
+    try {
+      const response = await api.get('/restaurants/themes');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching available themes:', error);
+      throw error;
+    }
+  },
+  
+  // Update restaurant settings
+  updateRestaurantSettings: async (id, data) => {
+    try {
+      console.log(`Updating restaurant settings for ${id}`, data);
+      const response = await api.patch(`/restaurants/${id}`, data);
+      console.log('Restaurant update response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating restaurant ${id}:`, error);
+      // Create a more user-friendly error response
+      return {
+        success: false,
+        error: error.response?.data?.error || 'An error occurred while updating restaurant settings'
+      };
     }
   }
 };

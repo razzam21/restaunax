@@ -22,6 +22,18 @@ Restaunax is a real-time order management dashboard for restaurants. The system 
 - Mixed ordering (select from menu or enter custom items)
 - Alphabetical sorting of menu items for easier discovery
 
+### Authentication & Security
+- Role-based access control (wait staff, manager, owner)
+- JWT token authentication with access and refresh tokens
+- Secure password storage with bcrypt
+- Audit logging for tracking user actions
+
+### Dynamic Theming
+- Custom themes for each restaurant
+- Theme applied automatically based on user's restaurant
+- Material UI theme customization
+- Theme data stored with restaurants
+
 ### User Experience
 - Intuitive order creation interface with autocomplete
 - Form validation for required fields
@@ -76,21 +88,56 @@ npm run migrate:dev
 npm run seed
 ```
 
+### Test Users
+
+The application comes with pre-seeded test users for different roles:
+
+- **Username**: `test`, **Password**: `Test1234`, **Role**: `wait_staff` (Restaurant 1)
+- **Username**: `manager`, **Password**: `Test1234`, **Role**: `manager` (Restaurant 1)
+- **Username**: `owner`, **Password**: `Test1234`, **Role**: `owner` (Restaurant 1)
+- **Username**: `test2`, **Password**: `Test1234`, **Role**: `wait_staff` (Restaurant 2)
+- **Username**: `manager2`, **Password**: `Test1234`, **Role**: `manager` (Restaurant 2)
+- **Username**: `owner2`, **Password**: `Test1234`, **Role**: `owner` (Restaurant 2)
+
 ## API Endpoints
 
-### Order API
+### Authentication API
+- `POST /api/auth/login` - Login with username and password
+- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/refresh-token` - Refresh access token
+- `POST /api/auth/logout` - Logout and invalidate refresh token
 
+### Order API
 - `GET /api/orders` - Get all orders with optional status filter
 - `GET /api/orders/:id` - Get a single order by ID
 - `POST /api/orders` - Create a new order
 - `PATCH /api/orders/:id` - Update order status
 
 ### Menu API
-
 - `GET /api/menu-items` - Get all menu items with optional category filter
 - `GET /api/menu-items/:id` - Get a single menu item by ID
 
+### Restaurant API
+- `GET /api/restaurants/:id` - Get restaurant details
+- `GET /api/restaurants/:id/theme` - Get restaurant theme settings
+
 ## Data Models
+
+### User
+- **id**: Unique identifier (UUID)
+- **username**: Username for authentication (unique)
+- **password**: Hashed password
+- **role**: User role (wait_staff, manager, owner)
+- **restaurantId**: Reference to the user's restaurant
+- **createdAt/updatedAt**: Timestamps
+
+### Restaurant
+- **id**: Unique identifier (UUID)
+- **name**: Name of the restaurant
+- **themeId**: Theme identifier
+- **primaryColor**: Primary color for branding
+- **secondaryColor**: Secondary color for branding
+- **createdAt/updatedAt**: Timestamps
 
 ### Order
 - **id**: Unique identifier (UUID)
@@ -101,6 +148,7 @@ npm run seed
 - **total**: Total order amount
 - **items**: List of order items
 - **restaurantId**: Reference to the restaurant
+- **userId**: Reference to the user who created the order
 - **createdAt/updatedAt**: Timestamps
 
 ### Order Item
@@ -135,6 +183,20 @@ npm run seed
 - ✅ Restaurant-specific order numbering (resets daily)
 - ✅ Alphabetical sorting of menu items
 
+### MVP2: Authentication System
+- ✅ User authentication with JWT tokens
+- ✅ Role-based access control
+- ✅ Secure password storage with bcrypt
+- ✅ Refresh token mechanism with HTTP-only cookies
+- ✅ Audit logging for user actions
+
+### MVP3: Dynamic Theming
+- ✅ Restaurant-specific themes
+- ✅ Theme applied based on user's restaurant
+- ✅ Material UI theme customization
+- ✅ Theme data stored in database
+- ✅ Theme component in the header
+
 ## Testing
 
 Restaunax includes comprehensive test coverage for both backend and frontend components.
@@ -147,6 +209,8 @@ Backend tests cover services, controllers, and API endpoints with a focus on:
 - Order service tests include validation of restaurant-specific order number generation
 - Order status transition validation
 - API endpoint validation including error handling
+- Authentication and authorization tests
+- Theme system tests
 
 ```bash
 cd server
@@ -163,6 +227,8 @@ Frontend tests use React Testing Library to verify component behavior:
 - OrderForm tests validate the Autocomplete component integration with menu items
 - Form validation and submission tests ensure data integrity
 - Component rendering tests verify UI elements
+- Authentication context and protected routes tests
+- Theme context tests
 
 ```bash
 cd client
@@ -177,11 +243,14 @@ The application implements several security measures:
 - SQL injection prevention using Prisma ORM
 - CORS configuration to allow requests only from the frontend
 - Data validation using Joi
+- JWT token authentication with refresh tokens
+- Secure password storage with bcrypt
+- HTTP-only cookies for refresh tokens
+- Role-based access control
+- Rate limiting for login attempts
 
-## Future Enhancements (MVPs 2-4)
+## Future Enhancements
 
-- MVP 2: Authentication and role-based authorization
-- MVP 3: Dynamic theming
 - MVP 4: Order reports and analytics
 
 ## Technical Details
@@ -198,11 +267,20 @@ The order number generation has been fully tested to ensure:
 - The format is consistent and predictable
 - Error handling for edge cases
 
-### Menu Item Integration
-- Menu items are loaded alphabetically for quick discovery
-- When a menu item is selected, its price is automatically filled
-- Custom items can still be entered manually with custom pricing
-- Autocomplete component supports both scenarios seamlessly
+### Authentication System
+- JSON Web Tokens (JWT) with 15-minute expiry for access tokens
+- Refresh tokens with 7-day expiry stored in HTTP-only cookies
+- Role-based middleware for protecting routes
+- Audit logging for tracking user actions
+- Password strength validation
+- Token revocation on logout
+
+### Dynamic Theming System
+- Theme data stored in the Restaurant model
+- Static theme files for Material UI theming
+- ThemeContext for managing theme state
+- Theme applied automatically based on user's restaurant
+- Theme indicator in the application header
 
 ### Testing Strategy
 - **Unit Tests**: Individual services and components are tested in isolation

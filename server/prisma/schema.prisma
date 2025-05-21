@@ -14,6 +14,9 @@ datasource db {
 model Restaurant {
   id            String          @id @default(uuid())
   name          String
+  themeId       String?         // ID of the theme to use
+  primaryColor  String?         // Primary color for the restaurant's theme
+  secondaryColor String?        // Secondary color for the restaurant's theme
   orders        Order[]
   menuItems     MenuItem[]
   users         User[]
@@ -107,7 +110,7 @@ model RefreshToken {
 model AuditLog {
   id          String    @id @default(uuid())
   userId      String
-  user        User      @relation(fields: [userId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   action      String    // e.g., "login", "update_order", etc.
   details     Json?     // JSON object with action-specific details
   createdAt   DateTime  @default(now())

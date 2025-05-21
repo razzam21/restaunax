@@ -1,5 +1,4 @@
 import React from 'react';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Box } from '@mui/material';
 
@@ -7,39 +6,19 @@ import Header from './components/layout/Header';
 import OrdersPage from './pages/OrdersPage';
 import OrderDetailPage from './pages/OrderDetailPage';
 import OrderFormPage from './pages/OrderFormPage';
+import RestaurantSettingsPage from './pages/RestaurantSettingsPage';
 import LoginPage from './components/auth/LoginPage';
 import UnauthorizedPage from './components/auth/UnauthorizedPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { OrderProvider } from './contexts/OrderContext';
 import { MenuProvider } from './contexts/MenuContext';
 import { AuthProvider } from './contexts/AuthContext';
-
-// Create theme
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#2C4A7A', // Slightly Dark Blue
-    },
-    secondary: {
-      main: '#D97A3A', // Slightly Dark Orange
-    },
-    background: {
-      default: '#F9FAFB', // Off-White
-      paper: '#FFFFFF',
-    },
-    info: {
-      main: '#4A8B8C', // Muted Teal
-    },
-    error: {
-      main: '#A8333B', // Deep Red
-    },
-  },
-});
+import { ThemeProvider } from './contexts/ThemeContext';
 
 const App = () => {
   return (
-    <ThemeProvider theme={theme}>
-      <AuthProvider>
+    <AuthProvider>
+      <ThemeProvider>
         <MenuProvider>
           <OrderProvider>
             <Box
@@ -73,6 +52,9 @@ const App = () => {
                     <Route path="/orders" element={<OrdersPage />} />
                     <Route path="/orders/new" element={<OrderFormPage />} />
                     <Route path="/orders/:id" element={<OrderDetailPage />} />
+                    
+                    {/* Restaurant settings - accessible by owner */}
+                    <Route path="/settings" element={<RestaurantSettingsPage />} />
                   </Route>
                 </Route>
                 
@@ -82,8 +64,8 @@ const App = () => {
             </Box>
           </OrderProvider>
         </MenuProvider>
-      </AuthProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 };
 
