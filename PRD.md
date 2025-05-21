@@ -5,14 +5,14 @@ Product Name: Restaunax Order Management DashboardPurpose: To enable wait staff 
 
 Primary Users: Wait staff (creating and updating orders).  
 Secondary Users: Managers and owners (monitoring order status).  
-Scope: Single restaurant instance tied to the logged-in user’s account. Reporting features are part of MVP 4.
+Scope: Single restaurant instance tied to the logged-in user's account. Reporting features are part of MVP 4.
 
 3. MVP Prioritization
 
 MVP 1: Order System – Core functionality for creating, viewing, and updating orders.  
 MVP 2: Login System – Authentication and role-based authorization with best practices.  
-MVP 3: Theming – Dynamic color theming based on user’s restaurant.  
-MVP 4: Reports – Viewable and downloadable order reports.
+MVP 3: Theming – Dynamic color theming based on user's restaurant.  
+MVP 4: Enhanced Management Dashboard & Reports
 
 4. Development Methodology
 
@@ -28,7 +28,7 @@ Run tests automatically via CI (e.g., GitHub Actions) in Docker environment.
 
 XSS (Cross-Site Scripting) Prevention:  
 Backend: Sanitize all user inputs (e.g., customerName, item names) using sanitize-html or DOMPurify.  
-Frontend: Use React’s built-in escaping; avoid dangerouslySetInnerHTML unless sanitized.  
+Frontend: Use React's built-in escaping; avoid dangerouslySetInnerHTML unless sanitized.  
 TDD: Tests for sanitization, ensuring malicious scripts (e.g., <script>alert('xss')</script>) are neutralized.
 
 
@@ -39,7 +39,7 @@ TDD: Tests for invalid inputs (e.g., SQL injection attempts like '; DROP TABLE o
 
 
 CORS (Cross-Origin Resource Sharing):  
-Configure Express CORS middleware to allow requests only from the frontend’s origin (e.g., http://localhost:80 in development, specific domain in production).  
+Configure Express CORS middleware to allow requests only from the frontend's origin (e.g., http://localhost:80 in development, specific domain in production).  
 Restrict methods (GET, POST, PATCH) and headers.  
 TDD: Tests for CORS policy enforcement, rejecting unauthorized origins.
 
@@ -290,13 +290,13 @@ Audit Log Schema
 
 Assumptions:
 
-Orders tied to user’s restaurantId.  
+Orders tied to user's restaurantId.  
 Role-based UI deferred to future iterations.  
 Refresh tokens stored in database for revocation.  
 Security: XSS sanitized; SQL injection prevented; CORS restricted; HTTPS enforced.
 
 6.3 MVP 3: Theming
-Objective: Implement dynamic theming based on user’s restaurant, using provided color scheme.Components: Frontend theme system integrated with Material UI.
+Objective: Implement dynamic theming based on user's restaurant, using provided color scheme.Components: Frontend theme system integrated with Material UI.
 
 
 
@@ -326,51 +326,77 @@ Assumptions:
 Theme applied post-login based on restaurantId.  
 Security: Theme files are static; no user input in MVP 3.
 
-6.4 MVP 4: Reports
-Objective: Enable managers/owners to view and download order reports.Components: Backend report endpoints, frontend report UI, downloadable CSVs.
+6.4 MVP 4: Enhanced Management Dashboard & Reports
+Objective: Enable managers/owners to monitor restaurant operations in real-time and access detailed business reports.
+Components: Real-time dashboard with WebSockets, business analytics, and downloadable reports.
 
+Feature | Description | Details
+--- | --- | ---
+**Backend** |  |  
+GET /reports/orders | Generate order report | - Returns aggregated data (e.g., orders by status, total revenue by day).<br>- Query parameters: startDate, endDate.<br>- Response: JSON with summary data.<br>- Security: Sanitize query parameters; CORS restricted; HTTPS; owner/manager-only.<br>- TDD: Tests for aggregation, date filtering, XSS/SQL injection.
+GET /reports/orders/download | Download report | - Returns report file in specified format (CSV or PDF).<br>- Query parameters: format, startDate, endDate.<br>- Security: Sanitize report data; CORS restricted; HTTPS; owner/manager-only.<br>- TDD: Tests for format options, data accuracy, security.
+GET /dashboard/metrics | Get real-time metrics | - Returns key business metrics for dashboard.<br>- Data includes: current day's revenue, average order value, order volume by hour, busiest periods.<br>- Security: CORS restricted; HTTPS; owner/manager-only.<br>- TDD: Tests for metric calculations, data accuracy.
+WebSocket /ws/dashboard | Real-time updates | - Establishes WebSocket connection for live dashboard updates.<br>- Pushes events for new orders, status changes, revenue updates.<br>- Security: JWT authentication; owner/manager-only access.<br>- TDD: Tests for connection, event emission, authorization.
+**Frontend** |  |  
+Management Dashboard | Business overview | - Displays real-time KPIs: daily revenue, order volume, average preparation time, average order value.<br>- Shows active tables/orders, staff productivity metrics.<br>- Includes trend graphs: hourly revenue, order volume by time.<br>- Security: Escape displayed data.<br>- TDD: Tests for dashboard rendering, WebSocket integration, XSS handling.
+Menu Performance | Item analytics | - Visualizes most/least popular items.<br>- Shows item profitability, preparation time efficiency.<br>- Security: Escape item data.<br>- TDD: Tests for visualization rendering, data accuracy.
+Operational Health | Staff & kitchen metrics | - Shows kitchen load/capacity.<br>- Displays order backlog and preparation bottlenecks.<br>- Highlights abnormal order preparation times.<br>- Security: Escape displayed data.<br>- TDD: Tests for metric calculations, visualization rendering.
+Reports Page | View reports | - Displays summary (e.g., orders by status, revenue).<br>- Uses Chart.js for visualizations (bar/pie charts).<br>- Date range picker for filtering.<br>- Security: Escape displayed data.<br>- TDD: Tests for chart rendering, filter application, XSS handling.
+Download Options | Export reports | - Buttons to export reports in CSV or PDF formats.<br>- Options for different report types (daily, weekly, monthly).<br>- Security: Sanitize file content.<br>- TDD: Tests for download functionality, format options, XSS prevention.
 
+**Data Structure**:
 
-Feature
-Description
-Details
+Dashboard Metrics Schema
+```json
+{
+  "dailyRevenue": {
+    "today": "number", // e.g., 1250.75
+    "previous": "number", // e.g., 1124.50
+    "percentChange": "number" // e.g., 11.2
+  },
+  "orderMetrics": {
+    "totalToday": "number", // e.g., 42
+    "averageValue": "number", // e.g., 29.78
+    "averagePrepTime": "number" // e.g., 18.5 (minutes)
+  },
+  "hourlyData": [
+    {
+      "hour": "string", // e.g., "10:00"
+      "revenue": "number", // e.g., 325.50
+      "orderCount": "number" // e.g., 12
+    }
+  ],
+  "itemPerformance": [
+    {
+      "itemName": "string", // e.g., "Margherita Pizza"
+      "quantity": "number", // e.g., 28
+      "revenue": "number", // e.g., 447.72
+      "averagePrepTime": "number" // e.g., 12.5 (minutes)
+    }
+  ],
+  "operationalStatus": {
+    "kitchenLoad": "number", // e.g., 75 (percent)
+    "pendingOrders": "number", // e.g., 8
+    "staffProductivity": "number", // e.g., 5.2 (orders per hour)
+    "peakHours": ["string"] // e.g., ["12:00", "19:00"]
+  }
+}
+```
 
+WebSocket Message Schema
+```json
+{
+  "type": "string", // e.g., "new_order", "status_update", "revenue_update"
+  "timestamp": "string", // ISO 8601
+  "data": "object" // Event-specific data
+}
+```
 
-
-Backend
-
-
-
-
-GET /reports/orders
-Generate order report
-- Returns aggregated data (e.g., orders by status, total revenue by day).- Query parameters: startDate, endDate.- Response: JSON with summary data.- Security: Sanitize query parameters; CORS restricted; HTTPS; owner/manager-only.- TDD: Tests for aggregation, date filtering, XSS/SQL injection.
-
-
-GET /reports/orders/download
-Download CSV report
-- Returns CSV file with order data (ID, customerName, orderType, status, total, createdAt).- Security: Sanitize CSV data; CORS restricted; HTTPS; owner/manager-only.- TDD: Tests for CSV format, data accuracy, security.
-
-
-Frontend
-
-
-
-
-Reports Page
-View reports
-- Displays summary (e.g., orders by status, revenue).- Uses Chart.js for visualizations (bar/pie charts).- Date range picker for filtering.- Security: Escape displayed data.- TDD: Tests for chart rendering, filter application, XSS handling.
-
-
-Download Button
-Export report as CSV
-- Button triggers GET /reports/orders/download.- Downloads file (e.g., orders_report.csv).- Security: Sanitize file content.- TDD: Tests for download functionality, XSS prevention.
-
-
-Assumptions:
-
-Reports limited to orders by status and daily revenue.  
-Security: Role-based access (manager/owner); XSS sanitized; CORS restricted.
+**Assumptions**:
+- Dashboard view limited to manager and owner roles
+- Reports can be downloaded in CSV or PDF format
+- WebSockets used for real-time updates
+- Security: Role-based access (manager/owner); XSS sanitized; CORS restricted; WebSocket authentication
 
 7. Non-Functional Requirements
 
@@ -416,7 +442,7 @@ Content: Defines services for frontend, backend, and database.
 MVP 1: Order system (API, dashboard, order creation/update, seeding).  
 MVP 2: Login system (auth endpoints, RBAC, user management, audit logging).  
 MVP 3: Dynamic theming (theme files, Material UI integration).  
-MVP 4: Reports (API, UI, CSV export).  
+MVP 4: Enhanced Management Dashboard & Reports (API, UI, WebSockets, business analytics, downloadable reports).  
 General:  
 OpenAPI/Postman API documentation.  
 Phinx migrations and seeders.  
@@ -431,7 +457,15 @@ Docker Compose file for local deployment.
 MVP 1: Wait staff can create/update orders; managers/owners can view orders; tests pass; XSS/SQL injection prevented; CORS enforced.  
 MVP 2: Users can log in; roles restrict access correctly; secure tokens/cookies; tests pass.  
 MVP 3: Theme applies based on restaurantId; UI responsive; tests pass.  
-MVP 4: Reports display/download correctly; charts render; tests pass.  
+MVP 4: 
+  - Management dashboard displays real-time business metrics
+  - WebSocket connections provide instant updates on orders and revenue
+  - KPIs show relevant business health information
+  - Reports display/download correctly in both CSV and PDF formats
+  - Charts render and update in real-time
+  - Security tests pass for WebSocket authentication and authorization
+  - All functionality restricted to manager/owner roles
+
 General:  
 Order creation/update takes < 10 seconds.  
 No critical ESLint errors; modular code.  
@@ -444,7 +478,7 @@ Security tests pass (XSS, SQL injection, CORS, auth).
 
 Assumptions:  
 MVP 1 uses hardcoded restaurantId (secured in MVP 2).  
-Polling (30s) for real-time updates; WebSockets deferred.  
+Polling (30s) for real-time updates; WebSockets in MVP 4.  
 Role-based UI deferred to future iterations.  
 HTTPS enforced via Docker configuration.
 
@@ -458,8 +492,10 @@ Development time assumed 1-2 weeks per MVP.
 
 13. Future Considerations
 
-WebSockets for real-time updates.  
 Role-specific UI (e.g., simplified for wait staff).  
 Multi-restaurant support.  
 Integration with POS/inventory systems.  
 Advanced security (e.g., multi-factor authentication, session management).
+Mobile application for on-the-go management.
+Customer feedback integration.
+Inventory management system.
