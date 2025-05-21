@@ -1,4 +1,4 @@
-import React from 'react';
+// App.js - Main application component
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Box } from '@mui/material';
 

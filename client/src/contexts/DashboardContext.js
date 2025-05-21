@@ -22,27 +22,34 @@ export const DashboardProvider = ({ children }) => {
     }
   });
   
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Initialize to false to prevent immediate loading state
   const [error, setError] = useState(null);
   const [wsConnection, setWsConnection] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  
+  // Early return check - skip all dashboard operations if not authenticated or wrong role
+  const hasAccess = isAuthenticated && ['manager', 'owner'].includes(user?.role);
 
   // Load dashboard metrics from API
   const loadDashboardMetrics = useCallback(async () => {
-    if (!isAuthenticated || !['manager', 'owner'].includes(user?.role)) {
+    if (!hasAccess) {
+      console.log('Dashboard metrics not loaded: user is not authenticated or has insufficient permissions');
       return;
     }
 
     try {
       setLoading(true);
+      console.log('Loading dashboard metrics from API');
       const response = await api.get('/reports/dashboard/metrics', {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
       
       if (response.data.success) {
         setMetrics(response.data.data);
+        console.log('Dashboard metrics loaded successfully');
       } else {
         setError('Failed to load dashboard metrics');
+        console.error('Failed to load dashboard metrics: API success=false');
       }
     } catch (err) {
       setError(err.message || 'Failed to load dashboard metrics');
@@ -50,13 +57,13 @@ export const DashboardProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, accessToken, user?.role]);
+  }, [hasAccess, accessToken]);
 
   // Setup WebSocket connection for real-time updates
   const setupWebSocket = useCallback(() => {
-    console.log('Setting up WebSocket connection. Auth status:', isAuthenticated, 'Role:', user?.role);
+    console.log('Setup WebSocket called. Auth status:', isAuthenticated, 'Role:', user?.role);
     
-    if (!isAuthenticated || !accessToken || !['manager', 'owner'].includes(user?.role)) {
+    if (!hasAccess || !accessToken) {
       console.log('Not setting up WebSocket - authentication or role requirements not met');
       return;
     }
@@ -159,12 +166,14 @@ export const DashboardProvider = ({ children }) => {
       setIsConnected(false);
       setWsConnection(null);
       
-      // Only try to reconnect if still authenticated
+      // Only try to reconnect if still authenticated and has proper role
       // Use a longer interval (10 seconds) to prevent excessive reconnection attempts
       setTimeout(() => {
-        if (isAuthenticated && ['manager', 'owner'].includes(user?.role)) {
+        if (hasAccess) {
           console.log('Attempting to reconnect WebSocket...');
           setupWebSocket();
+        } else {
+          console.log('Not reconnecting WebSocket - user no longer has access');
         }
       }, 10000);
     };
@@ -184,11 +193,31 @@ export const DashboardProvider = ({ children }) => {
         ws.close();
       }
     };
-  }, [isAuthenticated, accessToken, wsConnection, user?.role]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasAccess, accessToken, wsConnection]);
 
   // Initialize dashboard and WebSocket connection only once when authenticated
   useEffect(() => {
-    if (isAuthenticated && ['manager', 'owner'].includes(user?.role) && !wsConnection) {
+    console.log('DashboardContext main useEffect running, hasAccess:', hasAccess);
+    
+    // Skip everything if not authenticated or not the right role
+    if (!hasAccess) {
+      console.log('Dashboard initialization skipped - user has no access');
+      
+      // Clean up any existing connection
+      if (wsConnection) {
+        console.log('Closing existing WebSocket connection due to lost access');
+        wsConnection.close();
+        setWsConnection(null);
+      }
+      
+      return;
+    }
+    
+    // Only initialize if we have access but no active connection
+    if (hasAccess && !wsConnection) {
+      console.log('Initializing dashboard for authenticated user with proper role');
+      
       // Initial data load
       loadDashboardMetrics();
       
@@ -196,14 +225,15 @@ export const DashboardProvider = ({ children }) => {
       setupWebSocket();
     }
 
-    // Cleanup on unmount
+    // Cleanup on unmount or when access changes
     return () => {
       if (wsConnection) {
         console.log('Closing WebSocket connection on cleanup');
         wsConnection.close();
+        setWsConnection(null);
       }
     };
-  }, [isAuthenticated, user?.role, wsConnection, loadDashboardMetrics, setupWebSocket]);
+  }, [hasAccess, wsConnection, loadDashboardMetrics, setupWebSocket]);
 
   // Completely removed all polling - this useEffect is no longer needed
 
@@ -216,8 +246,15 @@ export const DashboardProvider = ({ children }) => {
     refreshDashboard: loadDashboardMetrics
   };
 
+  // Customize the context value based on access
+  const finalContextValue = hasAccess 
+    ? contextValue 
+    : { ...contextValue, loading: false, error: null };
+
+  // Still provide the context even if not authenticated,
+  // but with empty/default values to prevent errors in components that use it
   return (
-    <DashboardContext.Provider value={contextValue}>
+    <DashboardContext.Provider value={finalContextValue}>
       {children}
     </DashboardContext.Provider>
   );

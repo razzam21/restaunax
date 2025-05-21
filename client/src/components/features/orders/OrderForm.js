@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -35,7 +35,7 @@ import { useMenu } from '../../../contexts/MenuContext';
 const OrderForm = () => {
   const navigate = useNavigate();
   const { createOrder } = useOrders();
-  const { menuItems, loading: menuLoading, fetchMenuItems } = useMenu();
+  const { menuItems, fetchMenuItems } = useMenu();
   
   // Fetch menu items on component mount
   useEffect(() => {

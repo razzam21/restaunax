@@ -1,4 +1,4 @@
-import React from 'react';
+// Protected route component
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import Loading from '../common/Loading';

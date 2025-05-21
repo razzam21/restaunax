@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -20,16 +20,14 @@ import {
   Divider,
   useTheme as useMuiTheme
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { restaurantService } from '../services/api';
 
 const RestaurantSettingsPage = () => {
   const { user } = useAuth();
-  const { theme: currentTheme, changeTheme } = useTheme();
+  const { changeTheme } = useTheme();
   const muiTheme = useMuiTheme();
-  const navigate = useNavigate();
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);

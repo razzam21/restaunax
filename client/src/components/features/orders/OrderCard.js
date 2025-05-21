@@ -1,4 +1,4 @@
-import React from 'react';
+// Order card component
 import {
   Card,
   CardContent,

@@ -1,4 +1,4 @@
-import React from 'react';
+// Unauthorized access page
 import { Box, Typography, Button, Paper, Container } from '@mui/material';
 import { Link } from 'react-router-dom';
 import BlockIcon from '@mui/icons-material/Block';

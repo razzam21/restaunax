@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+// Dashboard page component
 import { 
   Box, 
   Container, 

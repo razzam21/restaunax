@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState } from 'react';
 import { 
   AppBar, 
   Toolbar, 
@@ -30,7 +30,7 @@ const Header = () => {
   const { themeInfo, loading: themeLoading } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   
   // Determine which tab is active based on current path
   const getCurrentPath = () => {

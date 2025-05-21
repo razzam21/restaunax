@@ -1,4 +1,4 @@
-import React from 'react';
+// Orders page component
 import { Container } from '@mui/material';
 import OrderList from '../components/features/orders/OrderList';
 

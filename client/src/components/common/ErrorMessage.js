@@ -1,4 +1,4 @@
-import React from 'react';
+// Error message component
 import { Box, Alert, Typography, Button } from '@mui/material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 

@@ -1,4 +1,4 @@
-import React from 'react';
+// Loading indicator component
 import { Box, CircularProgress, Typography } from '@mui/material';
 
 const Loading = ({ message = 'Loading...' }) => {
