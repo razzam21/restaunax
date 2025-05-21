@@ -16,6 +16,7 @@ model Restaurant {
   name          String
   orders        Order[]
   menuItems     MenuItem[]
+  users         User[]
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 }
@@ -42,6 +43,8 @@ model Order {
   status       OrderStatus @default(pending)
   total        Float
   items        OrderItem[]
+  userId       String?     // ID of user who created the order
+  user         User?       @relation(fields: [userId], references: [id])
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 }
@@ -68,4 +71,44 @@ enum OrderStatus {
   preparing
   ready
   delivered
+}
+
+enum UserRole {
+  wait_staff
+  manager
+  owner
+}
+
+model User {
+  id            String          @id @default(uuid())
+  username      String          @unique
+  password      String          // Hashed with bcrypt
+  role          UserRole        @default(wait_staff)
+  restaurantId  String
+  restaurant    Restaurant      @relation(fields: [restaurantId], references: [id])
+  orders        Order[]
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model RefreshToken {
+  id          String    @id @default(uuid())
+  token       String    @unique
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  revoked     Boolean   @default(false)
+  revokedAt   DateTime?
+}
+
+model AuditLog {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  action      String    // e.g., "login", "update_order", etc.
+  details     Json?     // JSON object with action-specific details
+  createdAt   DateTime  @default(now())
 }

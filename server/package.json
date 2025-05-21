@@ -12,17 +12,25 @@
     "migrate:dev": "prisma migrate dev",
     "seed": "node prisma/seed.js"
   },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
   "dependencies": {
     "@prisma/client": "^5.10.0",
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",
     "express": "^4.18.2",
     "express-async-handler": "^1.2.0",
+    "express-rate-limit": "^7.2.0",
     "helmet": "^7.1.0",
     "joi": "^17.12.1",
+    "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "sanitize-html": "^2.11.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "winston": "^3.12.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",

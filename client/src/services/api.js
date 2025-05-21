@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { shouldAttemptRefresh, clearAuthData } from '../utils/tokenUtils';
 
 // Make sure we include /api in the URL
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8081/api';
@@ -8,7 +9,77 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Allow cookies to be sent with requests
 });
+
+// Add interceptor to attach token to requests
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Add interceptor to handle 401 errors (unauthorized)
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Skip refresh logic if we're trying to access auth endpoints
+    const isAuthRequest = originalRequest.url.includes('/auth/');
+    
+    // Only refresh token if:
+    // 1. It's a 401 error
+    // 2. Not already retrying
+    // 3. Not an auth endpoint (prevent infinite loops)
+    // 4. We have an accessToken (we're supposed to be logged in)
+    // 5. We're not refreshing too frequently
+    if (
+      error.response?.status === 401 && 
+      !originalRequest._retry && 
+      !isAuthRequest && 
+      localStorage.getItem('accessToken') &&
+      shouldAttemptRefresh()
+    ) {
+      originalRequest._retry = true;
+
+      try {
+        // Try to refresh token
+        const response = await api.post('/auth/refresh-token');
+        
+        // Check if we got a valid response with accessToken
+        if (!response.data?.accessToken) {
+          throw new Error('Invalid refresh token response');
+        }
+        
+        const { accessToken } = response.data;
+
+        // Update token in localStorage
+        localStorage.setItem('accessToken', accessToken);
+
+        // Update header and retry original request
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        // If refresh failed, clean up and redirect to login
+        // But only if we're not already on the login page
+        clearAuthData();
+        
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export const orderService = {
   // Get all orders with optional status filter
@@ -86,21 +157,80 @@ export const menuService = {
   }
 };
 
-// Add an interceptor for debugging
-api.interceptors.request.use(request => {
-  console.log('API Request:', request);
-  return request;
-});
+// Add an interceptor for debugging (only in development)
+if (process.env.NODE_ENV === 'development') {
+  // Lightweight logging that doesn't spam the console
+  api.interceptors.request.use(request => {
+    // Skip logging refresh token requests to avoid console spam
+    if (!request.url.includes('/auth/refresh-token')) {
+      console.log(`API Request: ${request.method} ${request.url}`);
+    }
+    return request;
+  });
 
-api.interceptors.response.use(
-  response => {
-    console.log('API Response:', response);
-    return response;
+  api.interceptors.response.use(
+    response => {
+      // Skip logging refresh token responses to avoid console spam
+      if (!response.config.url.includes('/auth/refresh-token')) {
+        console.log(`API Response: ${response.status} ${response.config.method} ${response.config.url}`);
+      }
+      return response;
+    },
+    error => {
+      // Log all errors except refresh token errors (to avoid spam)
+      if (!error.config?.url?.includes('/auth/refresh-token')) {
+        console.error(`API Error: ${error.response?.status || 'Unknown'} ${error.config?.method || ''} ${error.config?.url || ''}`);
+      }
+      return Promise.reject(error);
+    }
+  );
+}
+
+// Auth service
+export const authService = {
+  // Login with username and password
+  login: async (credentials) => {
+    try {
+      const response = await api.post('/auth/login', credentials);
+      return response.data;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   },
-  error => {
-    console.error('API Error:', error);
-    return Promise.reject(error);
-  }
-);
+
+  // Register a new user
+  register: async (userData) => {
+    try {
+      const response = await api.post('/auth/register', userData);
+      return response.data;
+    } catch (error) {
+      console.error('Register error:', error);
+      throw error;
+    }
+  },
+
+  // Refresh access token
+  refreshToken: async () => {
+    try {
+      const response = await api.post('/auth/refresh-token');
+      return response.data;
+    } catch (error) {
+      console.error('Refresh token error:', error);
+      throw error;
+    }
+  },
+
+  // Logout user
+  logout: async () => {
+    try {
+      const response = await api.post('/auth/logout');
+      return response.data;
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
+  },
+};
 
 export default api;

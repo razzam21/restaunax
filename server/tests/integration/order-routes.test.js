@@ -1,6 +1,7 @@
 const request = require('supertest');
 const app = require('../../src/app');
 const prisma = require('../../src/db/client');
+const { authenticateRequest } = require('../utils/auth');
 
 // Mock Prisma client
 jest.mock('../../src/db/client', () => ({
@@ -28,7 +29,7 @@ describe('Order Routes', () => {
       prisma.order.findMany.mockResolvedValue(mockOrders);
 
       // Act
-      const res = await request(app).get('/api/orders');
+      const res = await authenticateRequest(request(app).get('/api/orders'));
 
       // Assert
       expect(res.statusCode).toBe(200);
@@ -41,7 +42,7 @@ describe('Order Routes', () => {
       prisma.order.findMany.mockResolvedValue(mockOrders);
 
       // Act
-      const res = await request(app).get('/api/orders?status=pending');
+      const res = await authenticateRequest(request(app).get('/api/orders?status=pending'));
 
       // Assert
       expect(res.statusCode).toBe(200);
@@ -61,7 +62,7 @@ describe('Order Routes', () => {
       prisma.order.findUnique.mockResolvedValue(mockOrder);
 
       // Act
-      const res = await request(app).get('/api/orders/1');
+      const res = await authenticateRequest(request(app).get('/api/orders/1'));
 
       // Assert
       expect(res.statusCode).toBe(200);
@@ -73,7 +74,7 @@ describe('Order Routes', () => {
       prisma.order.findUnique.mockResolvedValue(null);
 
       // Act
-      const res = await request(app).get('/api/orders/nonexistent');
+      const res = await authenticateRequest(request(app).get('/api/orders/nonexistent'));
 
       // Assert
       expect(res.statusCode).toBe(404);
@@ -100,9 +101,11 @@ describe('Order Routes', () => {
       prisma.order.create.mockResolvedValue(createdOrder);
 
       // Act
-      const res = await request(app)
-        .post('/api/orders')
-        .send(orderData);
+      const res = await authenticateRequest(
+        request(app)
+          .post('/api/orders')
+          .send(orderData)
+      );
 
       // Assert
       expect(res.statusCode).toBe(201);
@@ -131,9 +134,11 @@ describe('Order Routes', () => {
       prisma.order.create.mockResolvedValue(createdOrder);
 
       // Act
-      const res = await request(app)
-        .post('/api/orders')
-        .send(orderData);
+      const res = await authenticateRequest(
+        request(app)
+          .post('/api/orders')
+          .send(orderData)
+      );
 
       // Assert
       expect(res.statusCode).toBe(201);
@@ -148,9 +153,11 @@ describe('Order Routes', () => {
       };
 
       // Act
-      const res = await request(app)
-        .post('/api/orders')
-        .send(invalidOrderData);
+      const res = await authenticateRequest(
+        request(app)
+          .post('/api/orders')
+          .send(invalidOrderData)
+      );
 
       // Assert
       expect(res.statusCode).toBe(400);
@@ -177,9 +184,11 @@ describe('Order Routes', () => {
       }));
 
       // Act
-      const res = await request(app)
-        .post('/api/orders')
-        .send(orderData);
+      const res = await authenticateRequest(
+        request(app)
+          .post('/api/orders')
+          .send(orderData)
+      );
 
       // Assert
       expect(res.statusCode).toBe(201);
@@ -209,9 +218,11 @@ describe('Order Routes', () => {
       prisma.order.update.mockResolvedValue(updatedOrder);
 
       // Act
-      const res = await request(app)
-        .patch('/api/orders/1')
-        .send({ status: 'preparing' });
+      const res = await authenticateRequest(
+        request(app)
+          .patch('/api/orders/1')
+          .send({ status: 'preparing' })
+      );
 
       // Assert
       expect(res.statusCode).toBe(200);
@@ -234,9 +245,11 @@ describe('Order Routes', () => {
       });
 
       // Act
-      const res = await request(app)
-        .patch('/api/orders/1')
-        .send({ status: 'delivered' });
+      const res = await authenticateRequest(
+        request(app)
+          .patch('/api/orders/1')
+          .send({ status: 'delivered' })
+      );
 
       // Assert
       expect(res.statusCode).toBe(400);
@@ -247,9 +260,11 @@ describe('Order Routes', () => {
       prisma.order.findUnique.mockResolvedValue(null);
 
       // Act
-      const res = await request(app)
-        .patch('/api/orders/nonexistent')
-        .send({ status: 'preparing' });
+      const res = await authenticateRequest(
+        request(app)
+          .patch('/api/orders/nonexistent')
+          .send({ status: 'preparing' })
+      );
 
       // Assert
       expect(res.statusCode).toBe(404);

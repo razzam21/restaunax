@@ -1,16 +1,33 @@
 const { PrismaClient } = require('@prisma/client');
 const { v4: uuidv4 } = require('uuid');
+const bcrypt = require('bcrypt');
 
 const prisma = new PrismaClient();
 
+// Password hash rounds
+const SALT_ROUNDS = 12;
+
 async function main() {
-  // Create a restaurant
-  const restaurant = await prisma.restaurant.create({
-    data: {
-      id: 'rest_1',
-      name: 'Restaunax Demo Restaurant',
-    },
+  // Create or retrieve the restaurant
+  let restaurant;
+  
+  // Check if restaurant already exists
+  const existingRestaurant = await prisma.restaurant.findUnique({
+    where: { id: 'rest_1' }
   });
+  
+  if (existingRestaurant) {
+    console.log('Restaurant already exists, using existing one');
+    restaurant = existingRestaurant;
+  } else {
+    // Create a restaurant
+    restaurant = await prisma.restaurant.create({
+      data: {
+        id: 'rest_1',
+        name: 'Restaunax Demo Restaurant',
+      },
+    });
+  }
 
   // Create menu items
   const menuItems = [
@@ -66,12 +83,22 @@ async function main() {
   ];
 
   for (const item of menuItems) {
-    await prisma.menuItem.create({
-      data: {
-        ...item,
-        restaurantId: restaurant.id,
-      },
+    // Check if the menu item already exists
+    const existingMenuItem = await prisma.menuItem.findUnique({
+      where: { id: item.id }
     });
+    
+    if (existingMenuItem) {
+      console.log(`Menu item ${item.name} already exists, skipping`);
+    } else {
+      await prisma.menuItem.create({
+        data: {
+          ...item,
+          restaurantId: restaurant.id,
+        },
+      });
+      console.log(`Created menu item: ${item.name}`);
+    }
   }
 
   // Create orders
@@ -197,12 +224,57 @@ async function main() {
   ];
 
   for (const order of orderData) {
-    await prisma.order.create({
-      data: order,
+    // Check if order already exists
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: order.id }
     });
+    
+    if (existingOrder) {
+      console.log(`Order ${order.id} already exists, skipping`);
+    } else {
+      await prisma.order.create({
+        data: order,
+      });
+      console.log(`Created order: ${order.id}`);
+    }
+  }
+
+  // Create users with different roles
+  const password = "Test1234";
+  const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+  
+  const userRoles = ['owner', 'manager', 'wait_staff'];
+  
+  for (const role of userRoles) {
+    const userId = `user_${role}`;
+    const username = role === 'wait_staff' ? 'test' : role;
+    
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+    
+    if (existingUser) {
+      console.log(`User ${username} already exists, skipping`);
+    } else {
+      await prisma.user.create({
+        data: {
+          id: userId,
+          username: username,
+          password: hashedPassword,
+          role,
+          restaurantId: restaurant.id,
+        },
+      });
+      console.log(`Created user: ${username} with role ${role}`);
+    }
   }
 
   console.log('Seed data inserted successfully!');
+  console.log('Created users:');
+  console.log('- Username: "test", Password: "Test1234", Role: "wait_staff"');
+  console.log('- Username: "manager", Password: "Test1234", Role: "manager"');
+  console.log('- Username: "owner", Password: "Test1234", Role: "owner"');
 }
 
 main()

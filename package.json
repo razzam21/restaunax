@@ -17,7 +17,8 @@
     "lint": "npm run lint:server && npm run lint:client",
     "lint:server": "docker-compose exec server npm run lint",
     "lint:client": "docker-compose exec client npm run lint",
-    "test:all": "./tests.sh"
+    "test:all": "./tests.sh",
+    "setup": "cd server && npm run setup"
   },
   "keywords": [
     "restaurant",

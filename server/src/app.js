@@ -13,12 +13,15 @@ const app = express();
 app.use(helmet()); // Security headers
 app.use(morgan('dev')); // HTTP request logger
 app.use(express.json()); // Parse JSON request body
+app.use(express.urlencoded({ extended: false })); // Parse URL-encoded request body
+app.use(require('cookie-parser')()); // Parse cookies
 
 // CORS config
 app.use(cors({
   origin: config.corsOrigin,
-  methods: ['GET', 'POST', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // Allow cookies to be sent with requests
 }));
 
 // API routes

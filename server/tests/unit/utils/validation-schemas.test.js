@@ -22,7 +22,7 @@ describe('Validation Schemas', () => {
       expect(result.error).toBeUndefined();
     });
 
-    test('should use default restaurantId if not provided', () => {
+    test('should require restaurantId', () => {
       // Arrange
       const orderWithoutRestaurantId = {
         customerName: 'John Doe',
@@ -37,8 +37,8 @@ describe('Validation Schemas', () => {
       const result = createOrderSchema.validate(orderWithoutRestaurantId);
 
       // Assert
-      expect(result.error).toBeUndefined();
-      expect(result.value.restaurantId).toBe('rest_1');
+      expect(result.error).toBeDefined();
+      expect(result.error.details[0].message).toContain('restaurantId');
     });
 
     test('should reject invalid order type', () => {
