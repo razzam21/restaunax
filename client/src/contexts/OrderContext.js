@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { orderService } from '../services/api';
 
 const OrderContext = createContext();
@@ -74,24 +74,17 @@ export const OrderProvider = ({ children }) => {
     }
   }, []);
 
-  // Initial fetch
+  // Initial fetch only
   useEffect(() => {
     console.log('OrderContext mounted, fetching initial orders');
     fetchOrders().catch(err => {
       console.error('Initial fetch error:', err);
     });
-
-    // Poll for updates every 30 seconds
-    const interval = setInterval(() => {
-      console.log('Polling for order updates');
-      fetchOrders().catch(err => {
-        console.error('Polling fetch error:', err);
-      });
-    }, 30000);
-
+    
+    // No polling - relying on user actions and WebSocket updates instead
+    
     return () => {
-      console.log('OrderContext unmounting, clearing interval');
-      clearInterval(interval);
+      console.log('OrderContext unmounting');
     };
   }, [fetchOrders]);
 

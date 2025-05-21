@@ -1,5 +1,10 @@
 const prisma = require('../db/client');
 const { v4: uuidv4 } = require('uuid');
+const { 
+  broadcastNewOrder, 
+  broadcastOrderStatusChange 
+} = require('./websocket-service');
+const { updateMetricsForOrder } = require('./report-service');
 
 // Get all orders with optional status filter
 const getOrders = async (status) => {
@@ -110,7 +115,7 @@ const createOrder = async (orderData) => {
 
   // Create order with items
   try {
-    return await prisma.order.create({
+    const newOrder = await prisma.order.create({
       data: {
         id: uuidv4(),
         orderNumber,
@@ -119,6 +124,7 @@ const createOrder = async (orderData) => {
         orderType: orderData.orderType,
         status: 'pending',
         total: orderData.total,
+        userId: orderData.userId,
         items: {
           create: items
         }
@@ -127,6 +133,14 @@ const createOrder = async (orderData) => {
         items: true
       }
     });
+
+    // Update metrics for the new order
+    await updateMetricsForOrder(newOrder);
+
+    // Broadcast the new order to dashboard
+    broadcastNewOrder(newOrder);
+
+    return newOrder;
   } catch (error) {
     console.error('Error creating order in Prisma:', error);
     throw error;
@@ -162,13 +176,18 @@ const updateOrderStatus = async (id, status) => {
   }
 
   // Update order status
-  return prisma.order.update({
+  const updatedOrder = await prisma.order.update({
     where: { id },
     data: { status },
     include: {
       items: true
     }
   });
+
+  // Broadcast status change to dashboard
+  broadcastOrderStatusChange(updatedOrder);
+
+  return updatedOrder;
 };
 
 module.exports = {

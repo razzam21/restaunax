@@ -1,6 +1,7 @@
 const app = require('./app');
 const config = require('./config');
 const prisma = require('./db/client');
+const { initializeWebSocketServer } = require('./services/websocket-service');
 
 const PORT = config.port;
 
@@ -16,9 +17,21 @@ const server = app.listen(PORT, () => {
   console.log(`Server running in ${config.env} mode on port ${PORT}`);
 });
 
+// Initialize WebSocket server
+const wss = initializeWebSocketServer(server);
+
 // Handle graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received. Shutting down gracefully');
+  
+  // Close WebSocket connections
+  if (wss) {
+    wss.clients.forEach(client => {
+      client.terminate();
+    });
+    wss.close();
+    console.log('WebSocket server closed');
+  }
   
   // Close server
   server.close(async () => {

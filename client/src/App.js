@@ -7,6 +7,8 @@ import OrdersPage from './pages/OrdersPage';
 import OrderDetailPage from './pages/OrderDetailPage';
 import OrderFormPage from './pages/OrderFormPage';
 import RestaurantSettingsPage from './pages/RestaurantSettingsPage';
+import DashboardPage from './pages/DashboardPage';
+import ReportsPage from './pages/ReportsPage';
 import LoginPage from './components/auth/LoginPage';
 import UnauthorizedPage from './components/auth/UnauthorizedPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -14,6 +16,8 @@ import { OrderProvider } from './contexts/OrderContext';
 import { MenuProvider } from './contexts/MenuContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { DashboardProvider } from './contexts/DashboardContext';
+import { ReportProvider } from './contexts/ReportContext';
 
 const App = () => {
   return (
@@ -21,6 +25,8 @@ const App = () => {
       <ThemeProvider>
         <MenuProvider>
           <OrderProvider>
+            <DashboardProvider>
+              <ReportProvider>
             <Box
               sx={{
                 display: 'flex',
@@ -53,6 +59,10 @@ const App = () => {
                     <Route path="/orders/new" element={<OrderFormPage />} />
                     <Route path="/orders/:id" element={<OrderDetailPage />} />
                     
+                    {/* Dashboard & Reports - accessible by manager & owner */}
+                    <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="/reports" element={<ReportsPage />} />
+                    
                     {/* Restaurant settings - accessible by owner */}
                     <Route path="/settings" element={<RestaurantSettingsPage />} />
                   </Route>
@@ -62,6 +72,8 @@ const App = () => {
                 <Route path="*" element={<Navigate to="/login" replace />} />
               </Routes>
             </Box>
+              </ReportProvider>
+            </DashboardProvider>
           </OrderProvider>
         </MenuProvider>
       </ThemeProvider>
