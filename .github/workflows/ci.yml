@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: restaunax_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    # Backend tests
+    - name: Install server dependencies
+      working-directory: ./server
+      run: npm install
+    
+    - name: Setup Prisma and run migrations
+      working-directory: ./server
+      run: |
+        npx prisma generate
+        npx prisma migrate dev --name init
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/restaunax_test
+    
+    - name: Run server tests
+      working-directory: ./server
+      run: npm test
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/restaunax_test
+        NODE_ENV: test
+    
+    # Frontend tests
+    - name: Install client dependencies
+      working-directory: ./client
+      run: npm install
+    
+    - name: Run client tests
+      working-directory: ./client
+      run: npm test -- --watchAll=false
+      env:
+        CI: true
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install server dependencies
+      working-directory: ./server
+      run: npm install
+    
+    - name: Lint server code
+      working-directory: ./server
+      run: npm run lint
+    
+    - name: Install client dependencies
+      working-directory: ./client
+      run: npm install
+    
+    - name: Lint client code
+      working-directory: ./client
+      run: npm run lint

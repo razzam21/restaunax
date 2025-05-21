@@ -1,0 +1,30 @@
+{
+  "name": "restaunax",
+  "version": "1.0.0",
+  "description": "Restaurant Order Management Dashboard",
+  "scripts": {
+    "start": "docker-compose up",
+    "start:detached": "docker-compose up -d",
+    "stop": "docker-compose down",
+    "build": "docker-compose build",
+    "migrate": "docker-compose exec server npx prisma migrate dev",
+    "seed": "docker-compose exec server node prisma/seed.js",
+    "client": "cd client && npm start",
+    "server": "cd server && npm run dev",
+    "test": "docker-compose exec server npm test && docker-compose exec client npm test",
+    "test:backend": "docker-compose exec server npm test",
+    "test:frontend": "docker-compose exec client npm test",
+    "lint": "npm run lint:server && npm run lint:client",
+    "lint:server": "docker-compose exec server npm run lint",
+    "lint:client": "docker-compose exec client npm run lint",
+    "test:all": "./tests.sh"
+  },
+  "keywords": [
+    "restaurant",
+    "orders",
+    "management",
+    "dashboard"
+  ],
+  "author": "",
+  "license": "MIT"
+}

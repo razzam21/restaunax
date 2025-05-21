@@ -1,0 +1,47 @@
+services:
+  client:
+    build:
+      context: ./client
+      dockerfile: ../docker/client/Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - server
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - REACT_APP_API_URL=http://localhost:8081/api
+
+  server:
+    build:
+      context: ./server
+      dockerfile: ../docker/server/Dockerfile
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    depends_on:
+      - db
+    environment:
+      - NODE_ENV=development
+      - PORT=8080
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/restaunax
+      - CORS_ORIGIN=http://localhost:3000
+
+  db:
+    image: postgres:14-alpine
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=restaunax
+
+volumes:
+  postgres_data:
