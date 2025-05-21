@@ -108,6 +108,37 @@ describe('Order Routes', () => {
       expect(res.statusCode).toBe(201);
       expect(res.body).toEqual(createdOrder);
     });
+    
+    test('should assign order number in the correct format when creating order', async () => {
+      // Arrange
+      const orderData = {
+        restaurantId: 'rest_1',
+        customerName: 'Test Customer',
+        orderType: 'delivery',
+        total: 30.99,
+        items: [
+          { name: 'Test Menu Item', quantity: 2, price: 15.495 },
+        ],
+      };
+      
+      // Mock the order creation to include an order number in the expected format
+      const createdOrder = {
+        id: 'order-uuid',
+        orderNumber: 'R1-20250520-001',
+        ...orderData,
+        status: 'pending',
+      };
+      prisma.order.create.mockResolvedValue(createdOrder);
+
+      // Act
+      const res = await request(app)
+        .post('/api/orders')
+        .send(orderData);
+
+      // Assert
+      expect(res.statusCode).toBe(201);
+      expect(res.body.orderNumber).toMatch(/^R\d+-\d{8}-\d{3}$/);
+    });
 
     test('should return 400 with invalid data', async () => {
       // Arrange

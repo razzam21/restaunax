@@ -53,6 +53,7 @@ describe('OrderForm Component', () => {
     menuService.getMenuItems.mockResolvedValue(mockMenuItems);
     orderService.createOrder.mockResolvedValue({
       id: 'new-order-id',
+      orderNumber: 'R1-20250520-001',
       customerName: 'Test Customer',
       orderType: 'delivery',
       status: 'pending',
@@ -83,13 +84,18 @@ describe('OrderForm Component', () => {
     renderOrderForm();
 
     // Check if form elements are rendered
-    expect(screen.getByText('Create New Order')).toBeInTheDocument();
-    expect(screen.getByLabelText(/Customer Name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Delivery/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Pickup/i)).toBeInTheDocument();
-    expect(screen.getByText(/Order Items/i)).toBeInTheDocument();
-    expect(screen.getByText(/Order Summary/i)).toBeInTheDocument();
-    expect(screen.getByText(/Create Order/i)).toBeInTheDocument();
+    expect(screen.getByText('Create New Order')).toBeTruthy();
+    expect(screen.getByLabelText(/Customer Name/i)).toBeTruthy();
+    expect(screen.getByLabelText(/Delivery/i)).toBeTruthy();
+    expect(screen.getByLabelText(/Pickup/i)).toBeTruthy();
+    expect(screen.getByText(/Order Items/i)).toBeTruthy();
+    expect(screen.getByText(/Order Summary/i)).toBeTruthy();
+    expect(screen.getByText(/Create Order/i)).toBeTruthy();
+    
+    // Check for autocomplete component
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Item Name/i)).toBeTruthy();
+    });
   });
 
   test('validates form and shows errors for empty fields', async () => {
@@ -100,12 +106,12 @@ describe('OrderForm Component', () => {
 
     // Wait for validation errors to appear
     await waitFor(() => {
-      expect(screen.getByText(/Customer name is required/i)).toBeInTheDocument();
-      // Other validation errors should also be checked
+      expect(screen.getByText(/Customer name is required/i)).toBeTruthy();
+      expect(screen.getByText(/Item name is required/i)).toBeTruthy();
     });
   });
 
-  test('allows custom item entry when not selecting from menu', async () => {
+  test('allows custom item entry', async () => {
     renderOrderForm();
 
     // Fill the customer name
@@ -113,27 +119,29 @@ describe('OrderForm Component', () => {
       target: { value: 'Test Customer' },
     });
 
-    // Enter custom item name
-    const customItemField = await waitFor(() => screen.getByLabelText(/Custom Item Name/i));
-    fireEvent.change(customItemField, { target: { value: 'Custom Pizza' } });
+    // Enter custom item name in the autocomplete field
+    const itemNameField = await waitFor(() => screen.getByLabelText(/Item Name/i));
+    fireEvent.change(itemNameField, { target: { value: 'Custom Pizza' } });
 
     // Enter quantity and price
     fireEvent.change(screen.getByLabelText(/Quantity/i), { target: { value: '1' } });
     fireEvent.change(screen.getByLabelText(/Price/i), { target: { value: '19.99' } });
 
-    // Verify the values appear in the summary
-    expect(screen.getByText('Custom Pizza')).toBeInTheDocument();
-    expect(screen.getByText('$19.99')).toBeInTheDocument();
+    // Since we're changing input fields that update our summary based on state,
+    // we need to wait for the changes to be reflected
+    await waitFor(() => {
+      // Check that the entered item appears in the summary table
+      const summaryRows = screen.getAllByRole('row');
+      expect(summaryRows.length).toBeGreaterThan(1); // Header + data row
+      
+      // We should now see our custom item in the total
+      expect(screen.getAllByText('$19.99')).toBeTruthy();
+    });
   });
 
-  // This is a more complex test that might need additional setup
-  test('allows selecting a menu item from dropdown', async () => {
+  test('fetches menu items on component mount', async () => {
     renderOrderForm();
-
-    // These assertions are more aspirational since Autocomplete components are more complex to test
-    // A full implementation would use userEvent library and more sophisticated selectors
-
-    // For now, we can check that the menu service was called
+    
     await waitFor(() => {
       expect(menuService.getMenuItems).toHaveBeenCalled();
     });
@@ -147,9 +155,9 @@ describe('OrderForm Component', () => {
       target: { value: 'Test Customer' },
     });
 
-    // Enter custom item name
-    const customItemField = await waitFor(() => screen.getByLabelText(/Custom Item Name/i));
-    fireEvent.change(customItemField, { target: { value: 'Custom Pizza' } });
+    // Enter custom item name in the autocomplete field
+    const itemNameField = await waitFor(() => screen.getByLabelText(/Item Name/i));
+    fireEvent.change(itemNameField, { target: { value: 'Custom Pizza' } });
 
     // Enter quantity and price
     fireEvent.change(screen.getByLabelText(/Quantity/i), { target: { value: '2' } });
@@ -158,19 +166,19 @@ describe('OrderForm Component', () => {
     // Submit the form
     fireEvent.click(screen.getByText('Create Order'));
 
-    // Verify order was created
+    // Verify order was created with the expected data
     await waitFor(() => {
       expect(orderService.createOrder).toHaveBeenCalledWith(
         expect.objectContaining({
           customerName: 'Test Customer',
           orderType: 'delivery',
-          items: [
+          items: expect.arrayContaining([
             expect.objectContaining({
               name: 'Custom Pizza',
               quantity: 2,
               price: 15.99,
             }),
-          ],
+          ]),
           total: 31.98,
         })
       );

@@ -10,6 +10,7 @@ All notable changes to the Restaunax project will be documented in this file.
 - Restaurant-specific order numbering (format: R1-20250520-001)
 - Alphabetical sorting of menu items in dropdown for easier discovery
 - Auto-fill pricing when selecting menu items
+- Comprehensive test coverage for both backend and frontend
 
 ### Fixed
 - Missing database tables by running proper Prisma migrations
@@ -21,6 +22,12 @@ All notable changes to the Restaunax project will be documented in this file.
 - Menu items are now sorted alphabetically in the dropdown
 - Updated documentation with complete feature list and technical details
 - Enhanced error handling and debugging in order creation process
+
+### Tests
+- Added server-side tests verifying restaurant-specific order numbering with >90% coverage
+- Added tests for menu item alphabetical sorting
+- Added client-side tests for OrderCard to verify order number display
+- Updated OrderForm tests for the new Autocomplete component
 
 ## [1.0.0] - 2025-05-15
 

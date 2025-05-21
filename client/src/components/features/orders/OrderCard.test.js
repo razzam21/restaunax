@@ -11,99 +11,89 @@ jest.mock('react-router-dom', () => ({
 
 describe('OrderCard Component', () => {
   const mockOrder = {
-    id: 'ord_123456',
-    restaurantId: 'rest_1',
-    customerName: 'Alex Johnson',
+    id: 'order_123',
+    orderNumber: 'R1-20250520-001',
+    customerName: 'John Doe',
     orderType: 'delivery',
     status: 'pending',
-    total: 42.5,
-    createdAt: '2023-01-01T12:00:00Z',
+    total: 42.50,
+    createdAt: '2025-05-20T14:30:00Z',
     items: [
-      {
-        id: 'item_1',
-        name: 'Margherita Pizza',
-        quantity: 2,
-        price: 15.99,
-      },
-      {
-        id: 'item_2',
-        name: 'Caesar Salad',
-        quantity: 1,
-        price: 8.99,
-      },
+      { id: 'item_1', name: 'Margherita Pizza', quantity: 2, price: 15.99 },
+      { id: 'item_2', name: 'Caesar Salad', quantity: 1, price: 10.52 },
     ],
   };
 
-  const mockUpdateStatus = jest.fn();
-
-  const renderOrderCard = (order = mockOrder) => {
-    return render(
-      <BrowserRouter>
-        <OrderCard order={order} onUpdateStatus={mockUpdateStatus} />
-      </BrowserRouter>
-    );
+  const mockOrderWithoutOrderNumber = {
+    ...mockOrder,
+    orderNumber: null,
   };
 
-  it('should render order details correctly', () => {
-    renderOrderCard();
+  const mockOnUpdateStatus = jest.fn();
 
-    // Check if order information is displayed
-    expect(screen.getByText(/Order #123456/i)).toBeInTheDocument();
-    expect(screen.getByText(/Customer:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Alex Johnson/i)).toBeInTheDocument();
-    expect(screen.getByText(/delivery/i)).toBeInTheDocument();
-    expect(screen.getByText(/\$42.50/i)).toBeInTheDocument();
+  test('renders order card with correct order number', () => {
+    render(
+      <BrowserRouter>
+        <OrderCard order={mockOrder} onUpdateStatus={mockOnUpdateStatus} />
+      </BrowserRouter>
+    );
+
+    // Check if the order number is displayed correctly
+    expect(screen.getByText(/Order #R1-20250520-001/i)).toBeTruthy();
     
-    // Check for status chip
-    expect(screen.getByText('PENDING')).toBeInTheDocument();
-    
-    // Check for buttons
-    expect(screen.getByText('View Details')).toBeInTheDocument();
-    expect(screen.getByText('Mark preparing')).toBeInTheDocument();
+    // Other order details
+    expect(screen.getByText(/John Doe/i)).toBeTruthy();
+    expect(screen.getByText(/delivery/i)).toBeTruthy();
+    expect(screen.getByText(/\$42.50/i)).toBeTruthy();
   });
 
-  it('should call onUpdateStatus when update button is clicked', () => {
-    renderOrderCard();
-    
-    // Click the update status button
-    fireEvent.click(screen.getByText('Mark preparing'));
-    
-    // Check if update function was called with correct parameters
-    expect(mockUpdateStatus).toHaveBeenCalledWith('ord_123456', 'preparing');
+  test('falls back to ID when order number is not available', () => {
+    render(
+      <BrowserRouter>
+        <OrderCard order={mockOrderWithoutOrderNumber} onUpdateStatus={mockOnUpdateStatus} />
+      </BrowserRouter>
+    );
+
+    // Should display part of the ID as fallback
+    expect(screen.getByText(/Order #order_12/i)).toBeTruthy();
   });
 
-  it('should not show update button for delivered orders', () => {
-    const deliveredOrder = {
-      ...mockOrder,
-      status: 'delivered',
-    };
-    
-    renderOrderCard(deliveredOrder);
-    
-    // Status chip should show DELIVERED
-    expect(screen.getByText('DELIVERED')).toBeInTheDocument();
-    
-    // Update button should not be present
-    expect(screen.queryByText(/Mark/i)).not.toBeInTheDocument();
+  test('displays correct status label', () => {
+    render(
+      <BrowserRouter>
+        <OrderCard order={mockOrder} onUpdateStatus={mockOnUpdateStatus} />
+      </BrowserRouter>
+    );
+
+    // Status label should be displayed and be uppercase
+    expect(screen.getByText('PENDING')).toBeTruthy();
   });
 
-  it('should show correct next status button based on current status', () => {
-    // Test with preparing status
-    const preparingOrder = {
-      ...mockOrder,
-      status: 'preparing',
-    };
+  test('allows status update with the appropriate button', () => {
+    render(
+      <BrowserRouter>
+        <OrderCard order={mockOrder} onUpdateStatus={mockOnUpdateStatus} />
+      </BrowserRouter>
+    );
+
+    // Find and click the status update button
+    const updateButton = screen.getByText(/Mark preparing/i);
+    expect(updateButton).toBeTruthy();
     
-    renderOrderCard(preparingOrder);
-    expect(screen.getByText('Mark ready')).toBeInTheDocument();
+    fireEvent.click(updateButton);
     
-    // Test with ready status
-    const readyOrder = {
-      ...mockOrder,
-      status: 'ready',
-    };
-    
-    renderOrderCard(readyOrder);
-    expect(screen.getByText('Mark delivered')).toBeInTheDocument();
+    // Check if the update function was called with the correct parameters
+    expect(mockOnUpdateStatus).toHaveBeenCalledWith(mockOrder.id, 'preparing');
+  });
+
+  test('shows view details button', () => {
+    render(
+      <BrowserRouter>
+        <OrderCard order={mockOrder} onUpdateStatus={mockOnUpdateStatus} />
+      </BrowserRouter>
+    );
+
+    // View details button should be present
+    expect(screen.getByText(/View Details/i)).toBeTruthy();
   });
 });

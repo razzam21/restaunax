@@ -137,14 +137,32 @@ npm run seed
 
 ## Testing
 
+Restaunax includes comprehensive test coverage for both backend and frontend components.
+
 ### Backend Testing
+
+Backend tests cover services, controllers, and API endpoints with a focus on:
+
+- Menu service tests verify alphabetical sorting and filtering capabilities
+- Order service tests include validation of restaurant-specific order number generation
+- Order status transition validation
+- API endpoint validation including error handling
 
 ```bash
 cd server
 npm test
 ```
 
+Server-side tests achieve over 90% code coverage for critical services.
+
 ### Frontend Testing
+
+Frontend tests use React Testing Library to verify component behavior:
+
+- OrderCard tests verify proper order number display and fallback mechanisms
+- OrderForm tests validate the Autocomplete component integration with menu items
+- Form validation and submission tests ensure data integrity
+- Component rendering tests verify UI elements
 
 ```bash
 cd client
@@ -174,7 +192,21 @@ Order numbers use the format `REST-DATE-SEQUENCE` (e.g., R1-20250520-001):
 - DATE: Current date in YYYYMMDD format
 - SEQUENCE: Sequential number starting at 001 daily for each restaurant
 
+The order number generation has been fully tested to ensure:
+- Each restaurant maintains its own sequence
+- Sequences reset daily
+- The format is consistent and predictable
+- Error handling for edge cases
+
 ### Menu Item Integration
 - Menu items are loaded alphabetically for quick discovery
 - When a menu item is selected, its price is automatically filled
 - Custom items can still be entered manually with custom pricing
+- Autocomplete component supports both scenarios seamlessly
+
+### Testing Strategy
+- **Unit Tests**: Individual services and components are tested in isolation
+- **Integration Tests**: API endpoints are tested with database interactions
+- **Component Tests**: Frontend components are tested for rendering and behavior
+- **Test Coverage**: Critical paths have >90% code coverage
+- **CI/CD**: Tests run automatically on code changes

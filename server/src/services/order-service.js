@@ -175,5 +175,6 @@ module.exports = {
   getOrders,
   getOrderById,
   createOrder,
-  updateOrderStatus
+  updateOrderStatus,
+  generateOrderNumber // Export for testing
 };
