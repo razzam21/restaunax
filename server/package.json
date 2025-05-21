@@ -10,7 +10,10 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "migrate:dev": "prisma migrate dev",
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed.js",
+    "setup": "./scripts/setup.sh",
+    "predev": "npm run setup",
+    "prestart": "npm run setup"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

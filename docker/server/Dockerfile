@@ -13,8 +13,11 @@ ENV PRISMA_BINARY_TARGET=linux-musl
 
 COPY . .
 
-# Create logs directory
-RUN mkdir -p /app/logs && chmod 755 /app/logs
+# Create logs directory and add .gitkeep file
+RUN mkdir -p /app/logs && \
+    touch /app/logs/.gitkeep && \
+    chmod 755 /app/logs && \
+    chmod 644 /app/logs/.gitkeep
 
 # Generate Prisma client
 RUN npx prisma generate
