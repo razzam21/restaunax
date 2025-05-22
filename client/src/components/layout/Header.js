@@ -21,6 +21,7 @@ import PaletteIcon from '@mui/icons-material/Palette';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
@@ -36,6 +37,7 @@ const Header = () => {
   const getCurrentPath = () => {
     const path = location.pathname;
     if (path.startsWith('/orders')) return '/orders';
+    if (path.startsWith('/menu')) return '/menu';
     if (path.startsWith('/dashboard')) return '/dashboard';
     if (path.startsWith('/reports')) return '/reports';
     if (path.startsWith('/settings')) return '/settings';
@@ -75,8 +77,6 @@ const Header = () => {
     return `Theme: ${user.restaurantId}`;
   };
 
-  // No longer need menu handlers as we're now using tabs
-
   return (
     <AppBar position="static">
       <Toolbar>
@@ -108,6 +108,18 @@ const Header = () => {
                 icon={<RestaurantIcon />} 
                 iconPosition="start"
               />
+              
+              {/* Menu Management tab for manager/owner only */}
+              {(user.role === 'manager' || user.role === 'owner') && (
+                <Tab 
+                  label="Menu" 
+                  value="/menu" 
+                  component={Link} 
+                  to="/menu" 
+                  icon={<RestaurantMenuIcon />} 
+                  iconPosition="start"
+                />
+              )}
               
               {/* Dashboard & Reports tabs for manager/owner only */}
               {(user.role === 'manager' || user.role === 'owner') && (

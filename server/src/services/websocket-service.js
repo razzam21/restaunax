@@ -49,7 +49,7 @@ async function handleConnection(ws, req) {
     // Verify JWT token
     let decodedToken;
     try {
-      decodedToken = jwt.verify(token, config.jwt.secret);
+      decodedToken = jwt.verify(token, config.jwt.accessSecret);
     } catch (err) {
       logger.error('Invalid token', { error: err.message });
       ws.close(4002, 'Invalid authentication token');
@@ -57,8 +57,15 @@ async function handleConnection(ws, req) {
     }
 
     // Check if user exists and has proper role
+    // Debug token content
+    console.log('Token decoded successfully:', {
+      sub: decodedToken.sub,
+      username: decodedToken.username,
+      role: decodedToken.role
+    });
+    
     const user = await prisma.user.findUnique({
-      where: { id: decodedToken.userId }
+      where: { id: decodedToken.sub }
     });
 
     if (!user) {

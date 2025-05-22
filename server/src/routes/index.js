@@ -13,7 +13,13 @@ router.use('/auth', authRoutes);
 
 // Protected routes (authentication required)
 router.use('/orders', requireAuth, orderRoutes);
+
+// Legacy route for backward compatibility (use /menu/ for new routes)
 router.use('/menu-items', requireAuth, menuRoutes);
+
+// New menu management routes (MVP 5)
+router.use('/menu', requireAuth, menuRoutes);
+
 router.use('/restaurants', restaurantRoutes); // Auth middleware applied in restaurant-routes.js
 router.use('/reports', requireAuth, reportRoutes);
 router.use('/dashboard', requireAuth, reportRoutes);

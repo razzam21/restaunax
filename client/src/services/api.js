@@ -2,7 +2,12 @@ import axios from 'axios';
 import { shouldAttemptRefresh, clearAuthData } from '../utils/tokenUtils';
 
 // Make sure we include /api in the URL
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8081/api';
+// Check for window.API_URL_OVERRIDE (for debugging)
+const API_URL = (typeof window !== 'undefined' && window.API_URL_OVERRIDE) || 
+                process.env.REACT_APP_API_URL || 
+                'http://localhost:8081/api';
+
+console.log('Using API URL:', API_URL);
 
 const api = axios.create({
   baseURL: API_URL,

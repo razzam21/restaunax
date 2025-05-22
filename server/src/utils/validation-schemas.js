@@ -37,9 +37,89 @@ const loginSchema = Joi.object({
   password: Joi.string().required()
 });
 
+// Menu Item Schemas
+const menuItemCreateSchema = Joi.object({
+  name: Joi.string().required().trim().min(1).max(100),
+  description: Joi.string().allow('', null).max(500),
+  price: Joi.number().required().precision(2).min(0),
+  categoryId: Joi.string().allow('', null),
+  category: Joi.string().allow('', null), // Legacy field
+  image: Joi.string().allow('', null).max(500),
+  dietaryInfo: Joi.object({
+    vegetarian: Joi.boolean(),
+    vegan: Joi.boolean(),
+    glutenFree: Joi.boolean(),
+    containsNuts: Joi.boolean(),
+    spicyLevel: Joi.number().integer().min(0).max(3)
+  }).allow(null),
+  isActive: Joi.boolean(),
+  preparationTime: Joi.number().integer().min(0).allow(null)
+});
+
+const menuItemUpdateSchema = Joi.object({
+  name: Joi.string().trim().min(1).max(100),
+  description: Joi.string().allow('', null).max(500),
+  price: Joi.number().precision(2).min(0),
+  categoryId: Joi.string().allow('', null),
+  category: Joi.string().allow('', null), // Legacy field
+  image: Joi.string().allow('', null).max(500),
+  dietaryInfo: Joi.object({
+    vegetarian: Joi.boolean(),
+    vegan: Joi.boolean(),
+    glutenFree: Joi.boolean(),
+    containsNuts: Joi.boolean(),
+    spicyLevel: Joi.number().integer().min(0).max(3)
+  }).allow(null),
+  isActive: Joi.boolean(),
+  preparationTime: Joi.number().integer().min(0).allow(null)
+}).min(1);
+
+const menuItemBulkUpdateSchema = Joi.object({
+  ids: Joi.array().items(Joi.string()).required().min(1),
+  data: Joi.object({
+    categoryId: Joi.string().allow('', null),
+    isActive: Joi.boolean(),
+    preparationTime: Joi.number().integer().min(0).allow(null)
+  }).required().min(1)
+});
+
+// Menu Category Schemas
+const menuCategorySchema = Joi.object({
+  name: Joi.string().required().trim().min(1).max(50),
+  description: Joi.string().allow('', null).max(255),
+  displayOrder: Joi.number().integer().min(0),
+  isActive: Joi.boolean()
+});
+
+const menuCategoryUpdateSchema = Joi.object({
+  name: Joi.string().trim().min(1).max(50),
+  description: Joi.string().allow('', null).max(255),
+  displayOrder: Joi.number().integer().min(0),
+  isActive: Joi.boolean()
+}).min(1);
+
+const categoryOrderSchema = Joi.object({
+  categoryOrders: Joi.array().items(
+    Joi.object({
+      id: Joi.string().required(),
+      order: Joi.number().integer().min(0).required()
+    })
+  ).required().min(1)
+});
+
 module.exports = {
   createOrderSchema,
   updateOrderSchema,
   registerSchema,
-  loginSchema
+  loginSchema,
+  
+  // Menu item schemas
+  menuItemCreateSchema,
+  menuItemUpdateSchema,
+  menuItemBulkUpdateSchema,
+  
+  // Menu category schemas
+  menuCategorySchema,
+  menuCategoryUpdateSchema,
+  categoryOrderSchema
 };

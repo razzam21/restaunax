@@ -9,6 +9,7 @@ import OrderFormPage from './pages/OrderFormPage';
 import RestaurantSettingsPage from './pages/RestaurantSettingsPage';
 import DashboardPage from './pages/DashboardPage';
 import ReportsPage from './pages/ReportsPage';
+import MenuManagementPage from './pages/MenuManagementPage';
 import LoginPage from './components/auth/LoginPage';
 import UnauthorizedPage from './components/auth/UnauthorizedPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -58,6 +59,9 @@ const App = () => {
                     <Route path="/orders" element={<OrdersPage />} />
                     <Route path="/orders/new" element={<OrderFormPage />} />
                     <Route path="/orders/:id" element={<OrderDetailPage />} />
+                    
+                    {/* Menu management - accessible by manager & owner */}
+                    <Route path="/menu" element={<MenuManagementPage />} />
                     
                     {/* Dashboard & Reports - accessible by manager & owner */}
                     <Route path="/dashboard" element={<DashboardPage />} />

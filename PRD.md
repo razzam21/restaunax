@@ -13,6 +13,7 @@ MVP 1: Order System – Core functionality for creating, viewing, and updating o
 MVP 2: Login System – Authentication and role-based authorization with best practices.  
 MVP 3: Theming – Dynamic color theming based on user's restaurant.  
 MVP 4: Enhanced Management Dashboard & Reports
+MVP 5: Menu Management – Ability for managers and owners to manage menu items.
 
 4. Development Methodology
 
@@ -398,6 +399,77 @@ WebSocket Message Schema
 - WebSockets used for real-time updates
 - Security: Role-based access (manager/owner); XSS sanitized; CORS restricted; WebSocket authentication
 
+6.5 MVP 5: Menu Management
+Objective: Enable managers and owners to create, update, and manage menu items with categorization, pricing, and availability controls.
+Components: Backend API for menu management, frontend management interface, menu database schema.
+
+Feature | Description | Details
+--- | --- | ---
+**Backend** |  |  
+GET /menu | List menu items | - Returns all menu items for the restaurant.<br>- Query parameters: category, status (active/inactive).<br>- Response: JSON array of menu items.<br>- Security: CORS restricted; HTTPS; manager/owner-only.<br>- TDD: Tests for filtering, pagination, XSS prevention.
+GET /menu/:id | Get menu item | - Returns single menu item by ID.<br>- Response: JSON menu item object.<br>- Returns 404 if not found.<br>- Security: Sanitize id; CORS restricted; HTTPS.<br>- TDD: Tests for valid/invalid IDs, 404 handling.
+POST /menu | Create menu item | - Creates new menu item.<br>- Accepts JSON payload with item fields.<br>- Returns created item (201 status).<br>- Security: Sanitize inputs; validate price, category; CORS restricted; HTTPS; manager/owner-only.<br>- TDD: Tests for valid/invalid payloads, sanitization, authorization.
+PATCH /menu/:id | Update menu item | - Updates existing menu item.<br>- Accepts JSON payload with fields to update.<br>- Returns updated item.<br>- Security: Sanitize inputs; validate fields; CORS restricted; HTTPS; manager/owner-only.<br>- TDD: Tests for valid/invalid updates, authorization.
+DELETE /menu/:id | Delete menu item | - Soft deletes menu item (marks as inactive).<br>- Returns 204 No Content.<br>- Security: Validate id; CORS restricted; HTTPS; owner-only.<br>- TDD: Tests for successful deletion, authorization, validation.
+GET /menu/categories | List categories | - Returns all menu categories.<br>- Response: JSON array of categories.<br>- Security: CORS restricted; HTTPS; manager/owner-only.<br>- TDD: Tests for successful retrieval, authorization.
+POST /menu/categories | Create category | - Creates new menu category.<br>- Accepts JSON payload with category name and description.<br>- Returns created category (201 status).<br>- Security: Sanitize inputs; CORS restricted; HTTPS; owner-only.<br>- TDD: Tests for valid/invalid payloads, authorization.
+**Frontend** |  |  
+Menu Management Page | Main interface | - Accessible via top navigation bar for managers/owners only.<br>- Displays menu items in a table with filtering/sorting.<br>- Shows item status (active/inactive) with visual indicators.<br>- Includes quick action buttons (edit, deactivate).<br>- Security: Escape displayed data; role-based access.<br>- TDD: Tests for rendering, authorization, user interactions.
+Menu Item Form | Create/edit items | - Form for item name, description, price, category, image, dietary info.<br>- File upload for item images with preview.<br>- Validation for required fields and price format.<br>- Security: Input validation; sanitization; restrict image file types/size.<br>- TDD: Tests for form validation, file upload, XSS prevention.
+Category Management | Organize menu | - Interface to create/edit categories.<br>- Drag-and-drop reordering of categories.<br>- Security: Input validation; sanitization.<br>- TDD: Tests for category operations, ordering persistence.
+Menu Preview | View menu | - Shows how menu will appear to customers (future integration).<br>- Filters by category.<br>- Security: Escape displayed data.<br>- TDD: Tests for preview rendering, filtering.
+Bulk Actions | Mass updates | - Enable/disable multiple items.<br>- Change category for multiple items.<br>- Security: Authorization checks; validation.<br>- TDD: Tests for bulk operations, validation.
+
+**Data Structure**:
+
+Menu Item Schema
+```json
+{
+  "id": "string", // UUID
+  "restaurantId": "string", // UUID
+  "name": "string", // e.g., "Margherita Pizza"
+  "description": "string", // e.g., "Fresh mozzarella, tomatoes, and basil"
+  "price": "number", // e.g., 12.99
+  "category": "string", // e.g., "Pizza"
+  "categoryId": "string", // UUID
+  "image": "string", // URL to image
+  "dietaryInfo": {
+    "vegetarian": "boolean",
+    "vegan": "boolean",
+    "glutenFree": "boolean",
+    "containsNuts": "boolean",
+    "spicyLevel": "number" // 0-3
+  },
+  "isActive": "boolean", // true/false
+  "preparationTime": "number", // in minutes, e.g., 15
+  "createdAt": "string", // ISO 8601
+  "updatedAt": "string", // ISO 8601
+  "createdBy": "string", // User ID
+  "updatedBy": "string" // User ID
+}
+```
+
+Menu Category Schema
+```json
+{
+  "id": "string", // UUID
+  "restaurantId": "string", // UUID
+  "name": "string", // e.g., "Pizza"
+  "description": "string", // e.g., "Our signature wood-fired pizzas"
+  "displayOrder": "number", // e.g., 1 (for sorting)
+  "isActive": "boolean", // true/false
+  "createdAt": "string", // ISO 8601
+  "updatedAt": "string" // ISO 8601
+}
+```
+
+**Assumptions**:
+- Menu management restricted to manager and owner roles
+- Images stored with size/type restrictions, linked by URL in database
+- Soft deletion preferred over hard deletion (items marked inactive)
+- Menu categories created by owners, can be used by managers
+- Security: Role-based access control; input sanitization; CORS restricted; HTTPS enforcement
+
 7. Non-Functional Requirements
 
 Performance: API response time < 200ms for GET, < 500ms for POST/PATCH (100 concurrent users).  
@@ -420,8 +492,8 @@ Responsive Design: Supports desktops (1920x1080), tablets (1024x768), phones (37
 
 8. Technical Stack
 
-Backend: Node.js, Express, Prisma, PostgreSQL, Phinx, JWT, bcrypt, sanitize-html, express-rate-limit, Jest.  
-Frontend: React, Material UI, Axios, React Router, Chart.js (MVP 4), Jest.  
+Backend: Node.js, Express, Prisma, PostgreSQL, Phinx, JWT, bcrypt, sanitize-html, express-rate-limit, Jest, Socket.io, multer (file upload), sharp (image processing).  
+Frontend: React, Material UI, Axios, React Router, Chart.js (MVP 4), React Dropzone (file upload), React Beautiful DND (drag-and-drop), Jest.  
 Deployment: Docker, Docker Compose.  
 Development Tools: ESLint, Prettier, GitHub Actions (CI for tests).
 
@@ -443,6 +515,7 @@ MVP 1: Order system (API, dashboard, order creation/update, seeding).
 MVP 2: Login system (auth endpoints, RBAC, user management, audit logging).  
 MVP 3: Dynamic theming (theme files, Material UI integration).  
 MVP 4: Enhanced Management Dashboard & Reports (API, UI, WebSockets, business analytics, downloadable reports).  
+MVP 5: Menu Management (API, menu CRUD, category management, UI for managers/owners).
 General:  
 OpenAPI/Postman API documentation.  
 Phinx migrations and seeders.  
@@ -465,6 +538,13 @@ MVP 4:
   - Charts render and update in real-time
   - Security tests pass for WebSocket authentication and authorization
   - All functionality restricted to manager/owner roles
+MVP 5:
+  - Managers/owners can create, update, and manage menu items
+  - Menu items can be categorized and have pricing/availability controls
+  - Menu management interface accessible via top navigation
+  - Image upload for menu items works correctly
+  - Role-based access prevents unauthorized users from accessing menu management
+  - Changes to menu items reflect in order creation immediately
 
 General:  
 Order creation/update takes < 10 seconds.  
@@ -499,3 +579,7 @@ Advanced security (e.g., multi-factor authentication, session management).
 Mobile application for on-the-go management.
 Customer feedback integration.
 Inventory management system.
+Menu engineering analytics to optimize menu profitability.
+Table management and reservation system.
+Kitchen display system integration.
+Online ordering and delivery integration.

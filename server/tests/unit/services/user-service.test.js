@@ -24,7 +24,14 @@ jest.mock('../../../src/db/client', () => ({
   auditLog: {
     create: jest.fn(),
   },
-  $transaction: jest.fn((callback) => callback(prisma)),
+  $transaction: jest.fn((callback) => {
+    const mockPrisma = {
+      user: { findUnique: jest.fn(), create: jest.fn(), findFirst: jest.fn(), update: jest.fn(), deleteMany: jest.fn() },
+      refreshToken: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn(), deleteMany: jest.fn() },
+      auditLog: { create: jest.fn() }
+    };
+    return callback(mockPrisma);
+  }),
 }));
 
 // Mock config
