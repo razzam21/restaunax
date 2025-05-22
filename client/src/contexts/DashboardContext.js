@@ -75,10 +75,10 @@ export const DashboardProvider = ({ children }) => {
     }
 
     // Create new WebSocket connection
-    // Use the correct WebSocket URL
+    // Use the correct WebSocket URL - connect to backend server, not frontend
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const host = window.location.host;
-    const wsUrl = `${protocol}://${host}/ws/dashboard?token=${accessToken}`;
+    const backendHost = window.location.hostname + ':8081';
+    const wsUrl = `${protocol}://${backendHost}/ws/dashboard?token=${accessToken}`;
     
     console.log('Connecting to WebSocket:', wsUrl);
     const ws = new WebSocket(wsUrl);
@@ -181,8 +181,9 @@ export const DashboardProvider = ({ children }) => {
     ws.onerror = (error) => {
       console.error('WebSocket error:', error);
       setIsConnected(false);
-      // Fetch data via API as fallback when WebSocket fails
-      loadDashboardMetrics();
+      // Disabled API fallback to prevent excessive polling
+      // Only load initial data, don't keep polling on WebSocket failures
+      console.log('WebSocket failed - not falling back to API polling');
     };
 
     setWsConnection(ws);
