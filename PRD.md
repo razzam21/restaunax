@@ -15,7 +15,8 @@ MVP 3: Theming – Dynamic color theming based on user's restaurant.
 MVP 4: Enhanced Management Dashboard & Reports
 MVP 5: Menu Management – Ability for managers and owners to manage menu items.
 MVP 6: AI-Powered Demand Forecasting – Predictive analysis with asynchronous processing.
-MVP 7: Advanced AI Insights – Menu optimization and customer segmentation.
+MVP 7: System Health Monitoring – Container status monitoring and feature management.
+MVP 8: Advanced AI Insights – Menu optimization and customer segmentation.
 
 4. Development Methodology
 
@@ -587,7 +588,136 @@ Forecast Schema
 - AI features can be enabled/disabled via environment configuration
 - Security: Role-based access; data anonymization; CORS restricted; HTTPS enforcement
 
-6.7 MVP 7: Advanced AI Insights
+6.7 MVP 7: System Health Monitoring
+Objective: Provide comprehensive system health monitoring and settings management for the increasingly complex application infrastructure.
+Components: Health API endpoints, container status monitoring, feature flag management, and an enhanced settings dashboard.
+
+Feature | Description | Details
+--- | --- | ---
+**Backend** |  |  
+GET /system/health | System health overview | - Returns overall system health status and metrics.<br>- Includes status of all connected services and containers.<br>- Response: JSON with component-level health data.<br>- Security: CORS restricted; HTTPS; owner-only.<br>- TDD: Tests for accurate health reporting, service availability detection.
+GET /system/containers | Container status | - Returns detailed status of all Docker containers.<br>- Includes CPU, memory usage, uptime, and container state.<br>- Response: JSON array of container metrics.<br>- Security: CORS restricted; HTTPS; owner-only.<br>- TDD: Tests for container metrics, error handling, authorization.
+GET /system/features | Feature availability | - Returns status of all configurable features.<br>- Shows which premium features are enabled/disabled.<br>- Response: JSON mapping of feature flags.<br>- Security: CORS restricted; HTTPS; owner-only.<br>- TDD: Tests for feature detection, authorization.
+GET /system/logs | System logs | - Returns recent system logs filtered by severity.<br>- Query parameters: level, limit, service.<br>- Response: JSON array of log entries.<br>- Security: CORS restricted; HTTPS; owner-only.<br>- TDD: Tests for log retrieval, filtering, pagination.
+POST /system/features/:feature | Toggle feature | - Toggles a specific feature on/off if configurable at runtime.<br>- Updates feature flag in database.<br>- Returns updated feature status.<br>- Security: CORS restricted; HTTPS; owner-only; validate feature name.<br>- TDD: Tests for toggle functionality, authorization, validation.
+**Frontend** |  |  
+System Health Dashboard | Monitoring overview | - Comprehensive view of all system components.<br>- Visual health indicators for each service.<br>- Real-time monitoring with auto-refresh.<br>- Historical performance graphs (CPU, memory, response time).<br>- Security: Owner-only access.<br>- TDD: Tests for dashboard rendering, data visualization, access control.
+Container Management | Service monitoring | - Detailed view of each container's status and resource usage.<br>- Start/stop/restart container controls (if applicable).<br>- Container logs viewer with filtering.<br>- Alerts for containers in unhealthy state.<br>- Security: Owner-only access with careful validation.<br>- TDD: Tests for container control operations, log display.
+Feature Management | Feature configuration | - List of all system features with enabled/disabled status.<br>- Toggle controls for runtime-configurable features.<br>- Premium feature indicators with upgrade pathways.<br>- Documentation links for each feature.<br>- Security: Owner-only access; validate all toggles.<br>- TDD: Tests for feature toggling, status display, authorization.
+System Logs Viewer | Log monitoring | - Searchable, filterable log viewer.<br>- Color-coded log severity levels.<br>- Service-specific log filtering.<br>- Export logs functionality.<br>- Security: Owner-only access.<br>- TDD: Tests for log filtering, search functionality, export.
+Settings Enhancement | Centralized configuration | - Expanded settings page with system health section.<br>- Quick access to critical system metrics.<br>- Configuration options for monitoring preferences.<br>- Alert thresholds configuration.<br>- Security: Role-based access to different settings sections.<br>- TDD: Tests for settings persistence, validation, access control.
+
+**Data Structure**:
+
+System Health Schema
+```json
+{
+  "status": "string", // Enum: ["healthy", "degraded", "unhealthy"]
+  "timestamp": "string", // ISO 8601
+  "services": [
+    {
+      "name": "string", // e.g., "database", "redis", "backend", "ollama"
+      "status": "string", // Enum: ["up", "down", "degraded"]
+      "responseTime": "number", // ms
+      "lastChecked": "string", // ISO 8601
+      "metrics": {
+        "cpu": "number", // percentage
+        "memory": "number", // MB
+        "uptime": "number" // seconds
+      },
+      "message": "string" // Optional status message
+    }
+  ],
+  "features": [
+    {
+      "name": "string", // e.g., "ai_forecasting", "menu_optimization"
+      "enabled": "boolean",
+      "configurable": "boolean", // Whether it can be toggled at runtime
+      "premium": "boolean", // Whether it's a premium feature
+      "description": "string" // Feature description
+    }
+  ],
+  "systemMetrics": {
+    "totalMemory": "number", // MB
+    "usedMemory": "number", // MB
+    "cpuLoad": "number", // percentage
+    "diskSpace": {
+      "total": "number", // GB
+      "used": "number", // GB
+      "available": "number" // GB
+    }
+  }
+}
+```
+
+Container Schema
+```json
+{
+  "id": "string", // Container ID
+  "name": "string", // Container name
+  "image": "string", // Docker image
+  "state": "string", // Enum: ["running", "stopped", "restarting", "paused"]
+  "status": "string", // e.g., "Up 2 days"
+  "health": "string", // Enum: ["healthy", "unhealthy", "starting", "none"]
+  "ports": [
+    {
+      "internal": "number",
+      "external": "number",
+      "protocol": "string" // "tcp" or "udp"
+    }
+  ],
+  "network": "string", // Network name
+  "metrics": {
+    "cpu": {
+      "usage": "number", // percentage
+      "system": "number", // system CPU percentage
+      "user": "number" // user CPU percentage
+    },
+    "memory": {
+      "usage": "number", // MB
+      "limit": "number", // MB
+      "percentage": "number" // usage/limit percentage
+    },
+    "io": {
+      "read": "number", // bytes
+      "write": "number" // bytes
+    }
+  },
+  "restartCount": "number",
+  "startedAt": "string", // ISO 8601
+  "createdAt": "string" // ISO 8601
+}
+```
+
+Log Entry Schema
+```json
+{
+  "timestamp": "string", // ISO 8601
+  "level": "string", // Enum: ["info", "warn", "error", "debug", "critical"]
+  "service": "string", // e.g., "backend", "database"
+  "message": "string",
+  "metadata": "object" // Additional log-specific data
+}
+```
+
+**Implementation Details**:
+- Docker API integration for container status monitoring
+- Health check system for service availability testing
+- Feature flag storage in database with cache layer
+- Log aggregation from multiple service sources
+- Metrics collection at configurable intervals
+- WebSocket updates for real-time monitoring
+- Access restricted to owner role due to sensitive system controls
+
+**Assumptions**:
+- Docker socket access or Docker API available to backend
+- Container metrics accessible from host system
+- All services implement health check endpoints
+- Sufficient logging implemented across all services
+- Security: Owner-only access to all system health functions
+- Some container operations may require host-level privileges
+
+6.8 MVP 8: Advanced AI Insights
 Objective: Extend AI capabilities to menu optimization and customer segmentation with asynchronous processing.
 Components: Ollama AI integration, menu performance analysis, customer data analysis, and interactive insight dashboards.
 
@@ -778,7 +908,8 @@ MVP 3: Dynamic theming (theme files, Material UI integration).
 MVP 4: Enhanced Management Dashboard & Reports (API, UI, WebSockets, business analytics, downloadable reports).  
 MVP 5: Menu Management (API, menu CRUD, category management, UI for managers/owners).
 MVP 6: AI-Powered Demand Forecasting (Ollama integration, async processing, WebSocket notifications).
-MVP 7: Advanced AI Insights (Menu optimization, customer segmentation, unified insights dashboard).
+MVP 7: System Health Monitoring (Container status, feature management, health dashboard for owners).
+MVP 8: Advanced AI Insights (Menu optimization, customer segmentation, unified insights dashboard).
 General:  
 OpenAPI/Postman API documentation.  
 Prisma migrations and seeders.  
@@ -820,6 +951,16 @@ MVP 6:
   - Upgrade prompts appear when users attempt to access disabled premium features
   - Standard analytics remain available when AI features are disabled
 MVP 7:
+  - System health dashboard accurately reports container and service status
+  - All critical services have functioning health checks
+  - Feature management interface shows enabled/disabled status correctly
+  - Owners can toggle runtime-configurable features
+  - Log viewer successfully displays filtered system logs
+  - Container metrics (CPU, memory, etc.) display in real-time
+  - Access to system health functions properly restricted to owner role
+  - Performance issue alerts trigger when thresholds are exceeded
+  - Settings page provides centralized access to all system configuration
+MVP 8:
   - Menu optimization suggests actionable improvements with revenue impact
   - Customer segmentation correctly identifies distinct ordering patterns
   - Unified insights dashboard provides comprehensive business intelligence
