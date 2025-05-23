@@ -73,7 +73,9 @@ async function handleConnection(ws, req) {
       return;
     }
 
-    if (user.role !== 'manager' && user.role !== 'owner') {
+    // Allow all authenticated users to connect
+    // Different features will be available based on role
+    if (!['wait_staff', 'manager', 'owner'].includes(user.role)) {
       ws.close(4004, 'Insufficient permissions');
       return;
     }
@@ -116,6 +118,7 @@ async function handleConnection(ws, req) {
     ws.connectionId = connectionId;
     ws.userId = user.id;
     ws.restaurantId = user.restaurantId;
+    ws.userRole = user.role;
 
     logger.info('WebSocket connection established', { 
       userId: user.id,
@@ -242,24 +245,38 @@ async function updateLastActivity(connectionId) {
 }
 
 /**
- * Send initial dashboard data to new connection
+ * Send initial data to new connection based on user role
  * @param {WebSocket} ws - WebSocket connection
  */
 async function sendInitialData(ws) {
   try {
-    // Fetch current dashboard data
-    const { 
-      getDashboardMetrics 
-    } = require('./report-service');
-    
-    const dashboardData = await getDashboardMetrics(ws.restaurantId);
+    // Send different data based on user role
+    if (ws.userRole === 'manager' || ws.userRole === 'owner') {
+      // Send dashboard data for managers/owners
+      const { 
+        getDashboardMetrics 
+      } = require('./report-service');
+      
+      const dashboardData = await getDashboardMetrics(ws.restaurantId);
 
-    // Send to client
-    sendToConnection(ws, {
-      type: 'dashboard_data',
-      timestamp: new Date().toISOString(),
-      data: dashboardData
-    });
+      sendToConnection(ws, {
+        type: 'dashboard_data',
+        timestamp: new Date().toISOString(),
+        data: dashboardData
+      });
+    } else if (ws.userRole === 'wait_staff') {
+      // Send current orders for wait staff
+      const { getOrders } = require('./order-service');
+      
+      // Get recent orders for this restaurant
+      const ordersData = await getOrders(null, 1, 50, ws.restaurantId);
+
+      sendToConnection(ws, {
+        type: 'orders_data',
+        timestamp: new Date().toISOString(),
+        data: ordersData
+      });
+    }
 
   } catch (error) {
     logger.error('Error sending initial data', {
@@ -304,6 +321,23 @@ function sendToRestaurant(restaurantId, message) {
     const restConnections = restaurantConnections.get(restaurantId);
     for (const [_, ws] of restConnections) {
       sendToConnection(ws, message);
+    }
+  }
+}
+
+/**
+ * Send message to users with specific roles in a restaurant
+ * @param {string} restaurantId - Restaurant ID
+ * @param {Array} roles - Array of roles to send to
+ * @param {Object} message - Message object
+ */
+function sendToRestaurantRoles(restaurantId, roles, message) {
+  if (restaurantConnections.has(restaurantId)) {
+    const restConnections = restaurantConnections.get(restaurantId);
+    for (const [_, ws] of restConnections) {
+      if (roles.includes(ws.userRole)) {
+        sendToConnection(ws, message);
+      }
     }
   }
 }
@@ -362,9 +396,37 @@ function broadcastRevenueUpdate(restaurantId, metrics) {
   });
 }
 
+/**
+ * Broadcast order list update to wait staff
+ * @param {string} restaurantId - Restaurant ID
+ * @param {Object} ordersData - Updated orders data with pagination
+ */
+function broadcastOrderListUpdate(restaurantId, ordersData) {
+  sendToRestaurantRoles(restaurantId, ['wait_staff'], {
+    type: 'orders_list_update',
+    timestamp: new Date().toISOString(),
+    data: ordersData
+  });
+}
+
+/**
+ * Broadcast menu update to all users in restaurant
+ * @param {string} restaurantId - Restaurant ID
+ * @param {Object} menuData - Updated menu data
+ */
+function broadcastMenuUpdate(restaurantId, menuData) {
+  sendToRestaurant(restaurantId, {
+    type: 'menu_update',
+    timestamp: new Date().toISOString(),
+    data: menuData
+  });
+}
+
 module.exports = {
   initializeWebSocketServer,
   broadcastOrderStatusChange,
   broadcastNewOrder,
-  broadcastRevenueUpdate
+  broadcastRevenueUpdate,
+  broadcastOrderListUpdate,
+  broadcastMenuUpdate
 };

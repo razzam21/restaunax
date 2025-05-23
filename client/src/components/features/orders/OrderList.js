@@ -9,8 +9,11 @@ import {
   Button,
   Pagination,
   Paper,
+  Chip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import WifiIcon from '@mui/icons-material/Wifi';
+import WifiOffIcon from '@mui/icons-material/WifiOff';
 import { useNavigate } from 'react-router-dom';
 
 import OrderCard from './OrderCard';
@@ -21,7 +24,7 @@ import { useOrders } from '../../../contexts/OrderContext';
 const OrderList = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const { orders, loading, error, pagination, fetchOrders, updateOrderStatus } = useOrders();
+  const { orders, loading, error, pagination, isConnected, fetchOrders, updateOrderStatus } = useOrders();
   const navigate = useNavigate();
 
   // Re-fetch orders on mount
@@ -87,9 +90,17 @@ const OrderList = () => {
           mb: 2,
         }}
       >
-        <Typography variant="h4" component="h1" gutterBottom>
-          Orders
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="h4" component="h1" gutterBottom>
+            Orders
+          </Typography>
+          <Chip
+            icon={isConnected ? <WifiIcon /> : <WifiOffIcon />}
+            label={isConnected ? 'Live' : 'Offline'}
+            color={isConnected ? 'success' : 'default'}
+            size="small"
+          />
+        </Box>
         <Button
           variant="contained"
           color="primary"

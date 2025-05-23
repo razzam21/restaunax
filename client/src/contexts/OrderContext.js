@@ -1,11 +1,15 @@
 import { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { orderService } from '../services/api';
+import { useAuth } from './AuthContext';
+import webSocketService from '../services/websocket';
 
 const OrderContext = createContext();
 
 export const useOrders = () => useContext(OrderContext);
 
 export const OrderProvider = ({ children }) => {
+  const { accessToken, isAuthenticated, user } = useAuth();
+  
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,6 +20,10 @@ export const OrderProvider = ({ children }) => {
     hasNextPage: false,
     hasPreviousPage: false
   });
+  
+  // WebSocket state
+  const [isConnected, setIsConnected] = useState(false);
+
 
   // Fetch orders with pagination
   const fetchOrders = useCallback(async (status, page = 1, limit = 20) => {
@@ -95,25 +103,84 @@ export const OrderProvider = ({ children }) => {
     }
   }, []);
 
-  // Initial fetch only
+  // Handle WebSocket message events for orders
+  const handleWebSocketMessage = useCallback((data) => {
+    console.log('OrderContext received WebSocket message:', data.type);
+    
+    switch (data.type) {
+      case 'orders_data':
+        console.log('Received initial orders data via WebSocket');
+        setOrders(data.data.orders || []);
+        setPagination(data.data.pagination || {
+          currentPage: 1,
+          totalPages: 0,
+          totalCount: 0,
+          hasNextPage: false,
+          hasPreviousPage: false
+        });
+        break;
+      
+      case 'orders_list_update':
+        console.log('Received order list update via WebSocket');
+        setOrders(data.data.orders || []);
+        setPagination(prev => data.data.pagination || prev);
+        break;
+      
+      case 'new_order':
+      case 'order_status_change':
+        console.log('Received order change via WebSocket, refreshing list');
+        // Trigger a refresh of the orders
+        fetchOrders().catch(err => console.error('Refresh error:', err));
+        break;
+      
+      default:
+        // Ignore other message types (they're handled by other contexts)
+        break;
+    }
+  }, [fetchOrders]);
+
+  // Handle WebSocket connection state changes
+  const handleConnectionStateChange = useCallback((state) => {
+    setIsConnected(state.connected);
+  }, []);
+
+  // Initialize WebSocket and fetch orders when authenticated  
   useEffect(() => {
-    console.log('OrderContext mounted, fetching initial orders');
+    console.log('OrderContext mounted, checking authentication');
+    
+    if (!isAuthenticated) {
+      console.log('OrderContext: Not authenticated, skipping initialization');
+      return;
+    }
+
+    console.log('OrderContext: User authenticated, role:', user?.role, 'setting up WebSocket and fetching orders');
+    
+    // Always fetch orders on mount
     fetchOrders().catch(err => {
       console.error('Initial fetch error:', err);
     });
+
+    // Connect to WebSocket service if not already connected
+    webSocketService.connect(accessToken, isAuthenticated, user?.role);
     
-    // No polling - relying on user actions and WebSocket updates instead
+    // Subscribe to WebSocket events
+    const messageUnsubscribe = webSocketService.subscribe('message', handleWebSocketMessage);
+    const connectionUnsubscribe = webSocketService.subscribe('connectionStateChange', handleConnectionStateChange);
     
     return () => {
       console.log('OrderContext unmounting');
+      messageUnsubscribe();
+      connectionUnsubscribe();
+      // Don't disconnect the WebSocket service here as other contexts might be using it
     };
-  }, [fetchOrders]);
+  }, [isAuthenticated, accessToken, user?.role, fetchOrders, handleWebSocketMessage, handleConnectionStateChange]);
 
   const contextValue = {
     orders,
     loading,
     error,
     pagination,
+    isConnected,
     fetchOrders,
     getOrderById,
     createOrder,

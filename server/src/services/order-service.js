@@ -2,7 +2,8 @@ const prisma = require('../db/client');
 const { v4: uuidv4 } = require('uuid');
 const { 
   broadcastNewOrder, 
-  broadcastOrderStatusChange 
+  broadcastOrderStatusChange,
+  broadcastOrderListUpdate
 } = require('./websocket-service');
 const { updateMetricsForOrder } = require('./report-service');
 
@@ -166,6 +167,14 @@ const createOrder = async (orderData) => {
     // Broadcast the new order to dashboard
     broadcastNewOrder(newOrder);
 
+    // Broadcast updated order list to wait staff
+    try {
+      const updatedOrders = await getOrders(null, 1, 20, newOrder.restaurantId);
+      broadcastOrderListUpdate(newOrder.restaurantId, updatedOrders);
+    } catch (error) {
+      console.error('Error broadcasting order list update:', error);
+    }
+
     return newOrder;
   } catch (error) {
     console.error('Error creating order in Prisma:', error);
@@ -212,6 +221,14 @@ const updateOrderStatus = async (id, status) => {
 
   // Broadcast status change to dashboard
   broadcastOrderStatusChange(updatedOrder);
+
+  // Broadcast updated order list to wait staff
+  try {
+    const updatedOrders = await getOrders(null, 1, 20, updatedOrder.restaurantId);
+    broadcastOrderListUpdate(updatedOrder.restaurantId, updatedOrders);
+  } catch (error) {
+    console.error('Error broadcasting order list update:', error);
+  }
 
   return updatedOrder;
 };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -36,6 +36,7 @@ const OrderForm = () => {
   const navigate = useNavigate();
   const { createOrder } = useOrders();
   const { menuItems, fetchMenuItems } = useMenu();
+  const navigateTimeoutRef = useRef(null);
   
   // Fetch menu items on component mount
   useEffect(() => {
@@ -51,6 +52,16 @@ const OrderForm = () => {
       });
     }
   }, [menuItems]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (navigateTimeoutRef.current) {
+        clearTimeout(navigateTimeoutRef.current);
+        navigateTimeoutRef.current = null;
+      }
+    };
+  }, []);
   
   const [formData, setFormData] = useState({
     customerName: '',
@@ -252,8 +263,14 @@ const OrderForm = () => {
       });
       
       // Navigate back to orders list after successful creation
-      setTimeout(() => {
+      // Clear any existing timeout first
+      if (navigateTimeoutRef.current) {
+        clearTimeout(navigateTimeoutRef.current);
+      }
+      
+      navigateTimeoutRef.current = setTimeout(() => {
         navigate('/orders');
+        navigateTimeoutRef.current = null;
       }, 1500);
     } catch (error) {
       console.error('Order creation error:', error);

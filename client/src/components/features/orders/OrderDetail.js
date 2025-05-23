@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -22,10 +22,13 @@ import {
   MenuItem,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import WifiIcon from '@mui/icons-material/Wifi';
+import WifiOffIcon from '@mui/icons-material/WifiOff';
 
 import { useOrders } from '../../../contexts/OrderContext';
 import Loading from '../../common/Loading';
 import ErrorMessage from '../../common/ErrorMessage';
+import webSocketService from '../../../services/websocket';
 
 // Status colors
 const statusColors = {
@@ -48,7 +51,7 @@ const OrderDetail = () => {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { getOrderById, updateOrderStatus } = useOrders();
+  const { getOrderById, updateOrderStatus, isConnected } = useOrders();
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -68,6 +71,34 @@ const OrderDetail = () => {
 
     fetchOrder();
   }, [id, getOrderById]);
+
+  // Handle WebSocket messages for real-time order updates
+  const handleWebSocketMessage = useCallback((data) => {
+    if (!order) return;
+
+    // Only handle order status changes for this specific order
+    if (data.type === 'order_status_change' && data.data.orderId === order.id) {
+      console.log('OrderDetail: Received status change for current order');
+      setOrder(prevOrder => ({
+        ...prevOrder,
+        status: data.data.status
+      }));
+      setSelectedStatus(data.data.status);
+    }
+  }, [order]);
+
+  // Subscribe to WebSocket events for real-time updates
+  useEffect(() => {
+    if (!order) return;
+
+    console.log('OrderDetail: Setting up WebSocket subscription for order', order.id);
+    const unsubscribe = webSocketService.subscribe('message', handleWebSocketMessage);
+
+    return () => {
+      console.log('OrderDetail: Cleaning up WebSocket subscription');
+      unsubscribe();
+    };
+  }, [order, handleWebSocketMessage]);
 
   const handleStatusChange = (event) => {
     setSelectedStatus(event.target.value);
@@ -124,6 +155,13 @@ const OrderDetail = () => {
         <Typography variant="h4" component="h1">
           Order Details
         </Typography>
+        <Chip
+          icon={isConnected ? <WifiIcon /> : <WifiOffIcon />}
+          label={isConnected ? 'Live' : 'Offline'}
+          color={isConnected ? 'success' : 'default'}
+          size="small"
+          sx={{ ml: 2 }}
+        />
       </Box>
 
       <Paper sx={{ p: 3, mb: 4 }}>

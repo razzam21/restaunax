@@ -1,6 +1,7 @@
 const prisma = require('../db/client');
 const sanitizeHtml = require('sanitize-html');
 const auditLogger = require('../utils/audit-logger');
+const { broadcastMenuUpdate } = require('./websocket-service');
 
 /**
  * Menu Item Operations
@@ -109,6 +110,16 @@ const createMenuItem = async (data, userId) => {
     restaurantId: menuItem.restaurantId
   });
 
+  // Broadcast menu update
+  try {
+    broadcastMenuUpdate(menuItem.restaurantId, {
+      type: 'item_created',
+      item: menuItem
+    });
+  } catch (error) {
+    console.error('Error broadcasting menu update:', error);
+  }
+
   return menuItem;
 };
 
@@ -149,6 +160,16 @@ const updateMenuItem = async (id, data, userId) => {
     updatedFields: Object.keys(data)
   });
 
+  // Broadcast menu update
+  try {
+    broadcastMenuUpdate(updatedItem.restaurantId, {
+      type: 'item_updated',
+      item: updatedItem
+    });
+  } catch (error) {
+    console.error('Error broadcasting menu update:', error);
+  }
+
   return updatedItem;
 };
 
@@ -179,6 +200,16 @@ const deactivateMenuItem = async (id, userId) => {
     menuItemId: id,
     restaurantId: deactivatedItem.restaurantId
   });
+
+  // Broadcast menu update
+  try {
+    broadcastMenuUpdate(deactivatedItem.restaurantId, {
+      type: 'item_deactivated',
+      item: deactivatedItem
+    });
+  } catch (error) {
+    console.error('Error broadcasting menu update:', error);
+  }
 
   return deactivatedItem;
 };
@@ -322,6 +353,16 @@ const createMenuCategory = async (data, userId) => {
       categoryId: category.id,
       restaurantId: category.restaurantId
     });
+
+    // Broadcast menu update
+    try {
+      broadcastMenuUpdate(category.restaurantId, {
+        type: 'category_created',
+        category: category
+      });
+    } catch (error) {
+      console.error('Error broadcasting menu category update:', error);
+    }
 
     return category;
   } catch (error) {

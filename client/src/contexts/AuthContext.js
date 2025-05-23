@@ -1,6 +1,7 @@
 import { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { authService } from '../services/api';
 import { clearAuthData } from '../utils/tokenUtils';
+import webSocketService from '../services/websocket';
 
 // Create auth context
 const AuthContext = createContext();
@@ -72,6 +73,9 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       
+      // Disconnect WebSocket before logging out
+      webSocketService.disconnect();
+      
       await authService.logout();
       
       // Clear state
@@ -83,6 +87,9 @@ export const AuthProvider = ({ children }) => {
       clearAuthData();
     } catch (error) {
       console.error('Logout error:', error);
+      
+      // Disconnect WebSocket anyway
+      webSocketService.disconnect();
       
       // Clear auth state anyway
       setAccessToken(null);
