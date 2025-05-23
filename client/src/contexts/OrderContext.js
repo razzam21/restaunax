@@ -9,16 +9,37 @@ export const OrderProvider = ({ children }) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 0,
+    totalCount: 0,
+    hasNextPage: false,
+    hasPreviousPage: false
+  });
 
-  // Fetch all orders, optionally filtered by status
-  const fetchOrders = useCallback(async (status) => {
+  // Fetch orders with pagination
+  const fetchOrders = useCallback(async (status, page = 1, limit = 20) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Fetching orders with status:', status || 'all');
-      const data = await orderService.getOrders(status);
+      console.log('Fetching orders with status:', status || 'all', 'page:', page);
+      
+      const params = new URLSearchParams();
+      if (status) params.append('status', status);
+      params.append('page', page.toString());
+      params.append('limit', limit.toString());
+      
+      const data = await orderService.getOrders(params.toString());
       console.log('Orders fetched:', data);
-      setOrders(data || []);
+      
+      setOrders(data.orders || []);
+      setPagination(data.pagination || {
+        currentPage: 1,
+        totalPages: 0,
+        totalCount: 0,
+        hasNextPage: false,
+        hasPreviousPage: false
+      });
     } catch (err) {
       console.error('Error in fetchOrders:', err);
       setError(err.response?.data?.error || 'Failed to fetch orders');
@@ -92,6 +113,7 @@ export const OrderProvider = ({ children }) => {
     orders,
     loading,
     error,
+    pagination,
     fetchOrders,
     getOrderById,
     createOrder,

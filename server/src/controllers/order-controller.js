@@ -1,13 +1,18 @@
 const asyncHandler = require('express-async-handler');
 const orderService = require('../services/order-service');
 
-// @desc    Get all orders with optional status filter
-// @route   GET /api/orders
+// @desc    Get all orders with optional status filter and pagination
+// @route   GET /api/orders?page=1&limit=20&status=pending&restaurantId=rest_1
 // @access  Public (for MVP1, will be restricted in MVP2)
 const getOrders = asyncHandler(async (req, res) => {
-  const { status } = req.query;
-  const orders = await orderService.getOrders(status);
-  res.json(orders);
+  const { status, page = 1, limit = 20, restaurantId } = req.query;
+  
+  // Convert to numbers and validate
+  const pageNum = Math.max(1, parseInt(page) || 1);
+  const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20)); // Max 100 per page
+  
+  const result = await orderService.getOrders(status, pageNum, limitNum, restaurantId);
+  res.json(result);
 });
 
 // @desc    Get a single order by ID

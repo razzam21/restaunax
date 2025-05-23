@@ -6,23 +6,49 @@ const {
 } = require('./websocket-service');
 const { updateMetricsForOrder } = require('./report-service');
 
-// Get all orders with optional status filter
-const getOrders = async (status) => {
+// Get all orders with optional status filter and pagination
+const getOrders = async (status, page = 1, limit = 20, restaurantId = null) => {
   const filters = {};
   
   if (status) {
     filters.status = status;
   }
+  
+  if (restaurantId) {
+    filters.restaurantId = restaurantId;
+  }
 
-  return prisma.order.findMany({
+  // Calculate pagination
+  const skip = (page - 1) * limit;
+  
+  // Get total count for pagination info
+  const totalCount = await prisma.order.count({
+    where: filters
+  });
+  
+  // Get paginated orders
+  const orders = await prisma.order.findMany({
     where: filters,
     include: {
       items: true
     },
     orderBy: {
       createdAt: 'desc'
-    }
+    },
+    skip,
+    take: limit
   });
+
+  return {
+    orders,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
+      totalCount,
+      hasNextPage: page < Math.ceil(totalCount / limit),
+      hasPreviousPage: page > 1
+    }
+  };
 };
 
 // Get a single order by ID

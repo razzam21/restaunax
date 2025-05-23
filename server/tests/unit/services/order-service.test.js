@@ -24,38 +24,188 @@ describe('Order Service', () => {
   });
 
   describe('getOrders', () => {
-    test('should get all orders when no status is provided', async () => {
+    test('should get all orders with default pagination when no parameters provided', async () => {
       // Arrange
       const mockOrders = [{ id: '1', status: 'pending' }, { id: '2', status: 'delivered' }];
       prisma.order.findMany.mockResolvedValue(mockOrders);
+      prisma.order.count.mockResolvedValue(2);
 
       // Act
       const result = await orderService.getOrders();
 
       // Assert
+      expect(prisma.order.count).toHaveBeenCalledWith({
+        where: {}
+      });
       expect(prisma.order.findMany).toHaveBeenCalledWith({
         where: {},
         include: { items: true },
         orderBy: { createdAt: 'desc' },
+        skip: 0,
+        take: 20
       });
-      expect(result).toEqual(mockOrders);
+      expect(result).toEqual({
+        orders: mockOrders,
+        pagination: {
+          currentPage: 1,
+          totalPages: 1,
+          totalCount: 2,
+          hasNextPage: false,
+          hasPreviousPage: false
+        }
+      });
     });
 
     test('should filter orders by status when status is provided', async () => {
       // Arrange
       const mockOrders = [{ id: '1', status: 'pending' }];
       prisma.order.findMany.mockResolvedValue(mockOrders);
+      prisma.order.count.mockResolvedValue(1);
 
       // Act
       const result = await orderService.getOrders('pending');
 
       // Assert
+      expect(prisma.order.count).toHaveBeenCalledWith({
+        where: { status: 'pending' }
+      });
       expect(prisma.order.findMany).toHaveBeenCalledWith({
         where: { status: 'pending' },
         include: { items: true },
         orderBy: { createdAt: 'desc' },
+        skip: 0,
+        take: 20
       });
-      expect(result).toEqual(mockOrders);
+      expect(result.orders).toEqual(mockOrders);
+    });
+
+    test('should handle pagination with specific page and limit', async () => {
+      // Arrange
+      const mockOrders = [{ id: '3', status: 'pending' }, { id: '4', status: 'delivered' }];
+      prisma.order.findMany.mockResolvedValue(mockOrders);
+      prisma.order.count.mockResolvedValue(25);
+
+      // Act
+      const result = await orderService.getOrders(null, 2, 10);
+
+      // Assert
+      expect(prisma.order.count).toHaveBeenCalledWith({
+        where: {}
+      });
+      expect(prisma.order.findMany).toHaveBeenCalledWith({
+        where: {},
+        include: { items: true },
+        orderBy: { createdAt: 'desc' },
+        skip: 10, // (page 2 - 1) * 10 limit
+        take: 10
+      });
+      expect(result).toEqual({
+        orders: mockOrders,
+        pagination: {
+          currentPage: 2,
+          totalPages: 3, // Math.ceil(25 / 10)
+          totalCount: 25,
+          hasNextPage: true,
+          hasPreviousPage: true
+        }
+      });
+    });
+
+    test('should filter by restaurant ID when provided', async () => {
+      // Arrange
+      const mockOrders = [{ id: '1', status: 'pending', restaurantId: 'rest_1' }];
+      prisma.order.findMany.mockResolvedValue(mockOrders);
+      prisma.order.count.mockResolvedValue(1);
+
+      // Act
+      const result = await orderService.getOrders(null, 1, 20, 'rest_1');
+
+      // Assert
+      expect(prisma.order.count).toHaveBeenCalledWith({
+        where: { restaurantId: 'rest_1' }
+      });
+      expect(prisma.order.findMany).toHaveBeenCalledWith({
+        where: { restaurantId: 'rest_1' },
+        include: { items: true },
+        orderBy: { createdAt: 'desc' },
+        skip: 0,
+        take: 20
+      });
+      expect(result.orders).toEqual(mockOrders);
+    });
+
+    test('should combine status and restaurant filters with pagination', async () => {
+      // Arrange
+      const mockOrders = [{ id: '1', status: 'pending', restaurantId: 'rest_1' }];
+      prisma.order.findMany.mockResolvedValue(mockOrders);
+      prisma.order.count.mockResolvedValue(15);
+
+      // Act
+      const result = await orderService.getOrders('pending', 3, 5, 'rest_1');
+
+      // Assert
+      expect(prisma.order.count).toHaveBeenCalledWith({
+        where: { status: 'pending', restaurantId: 'rest_1' }
+      });
+      expect(prisma.order.findMany).toHaveBeenCalledWith({
+        where: { status: 'pending', restaurantId: 'rest_1' },
+        include: { items: true },
+        orderBy: { createdAt: 'desc' },
+        skip: 10, // (page 3 - 1) * 5 limit
+        take: 5
+      });
+      expect(result).toEqual({
+        orders: mockOrders,
+        pagination: {
+          currentPage: 3,
+          totalPages: 3, // Math.ceil(15 / 5)
+          totalCount: 15,
+          hasNextPage: false,
+          hasPreviousPage: true
+        }
+      });
+    });
+
+    test('should handle edge case with no orders', async () => {
+      // Arrange
+      prisma.order.findMany.mockResolvedValue([]);
+      prisma.order.count.mockResolvedValue(0);
+
+      // Act
+      const result = await orderService.getOrders();
+
+      // Assert
+      expect(result).toEqual({
+        orders: [],
+        pagination: {
+          currentPage: 1,
+          totalPages: 0,
+          totalCount: 0,
+          hasNextPage: false,
+          hasPreviousPage: false
+        }
+      });
+    });
+
+    test('should handle pagination when requesting page beyond available pages', async () => {
+      // Arrange
+      prisma.order.findMany.mockResolvedValue([]);
+      prisma.order.count.mockResolvedValue(5);
+
+      // Act
+      const result = await orderService.getOrders(null, 10, 10);
+
+      // Assert
+      expect(result).toEqual({
+        orders: [],
+        pagination: {
+          currentPage: 10,
+          totalPages: 1, // Math.ceil(5 / 10)
+          totalCount: 5,
+          hasNextPage: false,
+          hasPreviousPage: true
+        }
+      });
     });
   });
 

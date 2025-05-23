@@ -10,6 +10,7 @@ jest.mock('../../src/db/client', () => ({
     findUnique: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
+    count: jest.fn(),
   },
   $disconnect: jest.fn(),
 }));
@@ -20,36 +21,130 @@ describe('Order Routes', () => {
   });
 
   describe('GET /api/orders', () => {
-    test('should get all orders', async () => {
+    test('should get all orders with default pagination', async () => {
       // Arrange
       const mockOrders = [
         { id: '1', status: 'pending' },
         { id: '2', status: 'delivered' },
       ];
+      const mockResponse = {
+        orders: mockOrders,
+        pagination: {
+          currentPage: 1,
+          totalPages: 1,
+          totalCount: 2,
+          hasNextPage: false,
+          hasPreviousPage: false
+        }
+      };
       prisma.order.findMany.mockResolvedValue(mockOrders);
+      prisma.order.count.mockResolvedValue(2);
 
       // Act
       const res = await authenticateRequest(request(app).get('/api/orders'));
 
       // Assert
       expect(res.statusCode).toBe(200);
-      expect(res.body).toEqual(mockOrders);
+      expect(res.body).toEqual(mockResponse);
     });
 
-    test('should filter orders by status', async () => {
+    test('should handle pagination parameters', async () => {
+      // Arrange
+      const mockOrders = [{ id: '3', status: 'pending' }];
+      const mockResponse = {
+        orders: mockOrders,
+        pagination: {
+          currentPage: 2,
+          totalPages: 3,
+          totalCount: 25,
+          hasNextPage: true,
+          hasPreviousPage: true
+        }
+      };
+      prisma.order.findMany.mockResolvedValue(mockOrders);
+      prisma.order.count.mockResolvedValue(25);
+
+      // Act
+      const res = await authenticateRequest(request(app).get('/api/orders?page=2&limit=10'));
+
+      // Assert
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toEqual(mockResponse);
+      expect(prisma.order.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 10,
+          take: 10,
+        })
+      );
+    });
+
+    test('should filter orders by status with pagination', async () => {
       // Arrange
       const mockOrders = [{ id: '1', status: 'pending' }];
+      const mockResponse = {
+        orders: mockOrders,
+        pagination: {
+          currentPage: 1,
+          totalPages: 1,
+          totalCount: 1,
+          hasNextPage: false,
+          hasPreviousPage: false
+        }
+      };
       prisma.order.findMany.mockResolvedValue(mockOrders);
+      prisma.order.count.mockResolvedValue(1);
 
       // Act
       const res = await authenticateRequest(request(app).get('/api/orders?status=pending'));
 
       // Assert
       expect(res.statusCode).toBe(200);
-      expect(res.body).toEqual(mockOrders);
+      expect(res.body).toEqual(mockResponse);
       expect(prisma.order.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { status: 'pending' },
+        })
+      );
+    });
+
+    test('should handle invalid pagination parameters gracefully', async () => {
+      // Arrange
+      const mockOrders = [];
+      const mockResponse = {
+        orders: mockOrders,
+        pagination: {
+          currentPage: 1,
+          totalPages: 0,
+          totalCount: 0,
+          hasNextPage: false,
+          hasPreviousPage: false
+        }
+      };
+      prisma.order.findMany.mockResolvedValue(mockOrders);
+      prisma.order.count.mockResolvedValue(0);
+
+      // Act
+      const res = await authenticateRequest(request(app).get('/api/orders?page=-1&limit=abc'));
+
+      // Assert
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toEqual(mockResponse);
+    });
+
+    test('should limit maximum page size', async () => {
+      // Arrange
+      const mockOrders = [];
+      prisma.order.findMany.mockResolvedValue(mockOrders);
+      prisma.order.count.mockResolvedValue(0);
+
+      // Act
+      const res = await authenticateRequest(request(app).get('/api/orders?limit=1000'));
+
+      // Assert
+      expect(res.statusCode).toBe(200);
+      expect(prisma.order.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: expect.any(Number), // Should be limited, not 1000
         })
       );
     });

@@ -1,6 +1,7 @@
 const app = require('./app');
 const config = require('./config');
 const prisma = require('./db/client');
+const { initializeWebSocketServer } = require('./services/websocket-service');
 
 const PORT = config.port;
 
@@ -25,6 +26,10 @@ prisma.$connect()
     const server = app.listen(PORT, () => {
       console.log(`Server running in ${config.env} mode on port ${PORT}`);
     });
+    
+    // Initialize WebSocket server
+    initializeWebSocketServer(server);
+    console.log('WebSocket server initialized on /ws/dashboard');
     
     server.on('error', (error) => {
       console.error('Server error:', error);

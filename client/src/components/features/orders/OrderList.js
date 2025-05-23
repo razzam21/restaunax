@@ -7,6 +7,8 @@ import {
   Typography,
   Divider,
   Button,
+  Pagination,
+  Paper,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { useNavigate } from 'react-router-dom';
@@ -18,25 +20,30 @@ import { useOrders } from '../../../contexts/OrderContext';
 
 const OrderList = () => {
   const [activeTab, setActiveTab] = useState('all');
-  const { orders, loading, error, fetchOrders, updateOrderStatus } = useOrders();
+  const [currentPage, setCurrentPage] = useState(1);
+  const { orders, loading, error, pagination, fetchOrders, updateOrderStatus } = useOrders();
   const navigate = useNavigate();
 
   // Re-fetch orders on mount
   useEffect(() => {
     console.log('OrderList mounted, fetching orders');
-    fetchOrders().catch(err => {
+    fetchOrders(activeTab === 'all' ? null : activeTab, currentPage).catch(err => {
       console.error('OrderList fetch error:', err);
     });
-  }, [fetchOrders]);
+  }, [fetchOrders, activeTab, currentPage]);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
-    // If not 'all', filter by status
-    if (newValue !== 'all') {
-      fetchOrders(newValue);
-    } else {
-      fetchOrders();
-    }
+    setCurrentPage(1); // Reset to first page when changing tabs
+    // Fetch orders for the new tab
+    const status = newValue === 'all' ? null : newValue;
+    fetchOrders(status, 1);
+  };
+
+  const handlePageChange = (event, page) => {
+    setCurrentPage(page);
+    const status = activeTab === 'all' ? null : activeTab;
+    fetchOrders(status, page);
   };
 
   const handleUpdateStatus = async (id, status) => {
@@ -53,18 +60,15 @@ const OrderList = () => {
 
   const handleRetry = () => {
     console.log('Retrying order fetch');
-    fetchOrders(activeTab !== 'all' ? activeTab : undefined);
+    const status = activeTab !== 'all' ? activeTab : null;
+    fetchOrders(status, currentPage);
   };
-
-  // Filter orders based on active tab
-  const filteredOrders = activeTab === 'all'
-    ? orders
-    : orders.filter(order => order.status === activeTab);
 
   console.log('OrderList render state:', { 
     activeTab, 
+    currentPage,
     orders: orders.length, 
-    filteredOrders: filteredOrders.length, 
+    pagination,
     loading, 
     error 
   });
@@ -119,7 +123,7 @@ const OrderList = () => {
         />
       )}
 
-      {!error && filteredOrders.length === 0 ? (
+      {!error && orders.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 4 }}>
           <Typography variant="h6">No orders found</Typography>
           <Typography variant="body1" color="textSecondary">
@@ -129,16 +133,39 @@ const OrderList = () => {
           </Typography>
         </Box>
       ) : (
-        <Grid container spacing={2}>
-          {filteredOrders.map((order) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={order.id}>
-              <OrderCard
-                order={order}
-                onUpdateStatus={handleUpdateStatus}
-              />
-            </Grid>
-          ))}
-        </Grid>
+        <>
+          <Grid container spacing={2}>
+            {orders.map((order) => (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={order.id}>
+                <OrderCard
+                  order={order}
+                  onUpdateStatus={handleUpdateStatus}
+                />
+              </Grid>
+            ))}
+          </Grid>
+          
+          {/* Pagination */}
+          {pagination.totalPages > 1 && (
+            <Paper sx={{ p: 2, mt: 3, display: 'flex', justifyContent: 'center' }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                <Typography variant="body2" color="textSecondary">
+                  Showing {orders.length} of {pagination.totalCount} orders
+                  {activeTab !== 'all' && ` (${activeTab} status)`}
+                </Typography>
+                <Pagination
+                  count={pagination.totalPages}
+                  page={currentPage}
+                  onChange={handlePageChange}
+                  color="primary"
+                  size="large"
+                  showFirstButton
+                  showLastButton
+                />
+              </Box>
+            </Paper>
+          )}
+        </>
       )}
     </Box>
   );

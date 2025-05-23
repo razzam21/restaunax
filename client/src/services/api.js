@@ -87,11 +87,11 @@ api.interceptors.response.use(
 );
 
 export const orderService = {
-  // Get all orders with optional status filter
-  getOrders: async (status) => {
+  // Get orders with pagination and optional status filter
+  getOrders: async (queryString) => {
     try {
-      const params = status ? { status } : {};
-      const response = await api.get('/orders', { params });
+      const url = queryString ? `/orders?${queryString}` : '/orders';
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching orders:', error);
