@@ -22,6 +22,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
@@ -40,6 +41,7 @@ const Header = () => {
     if (path.startsWith('/menu')) return '/menu';
     if (path.startsWith('/dashboard')) return '/dashboard';
     if (path.startsWith('/reports')) return '/reports';
+    if (path.startsWith('/ai-insights')) return '/ai-insights';
     if (path.startsWith('/settings')) return '/settings';
     return '/orders'; // Default
   };
@@ -138,6 +140,28 @@ const Header = () => {
                     component={Link} 
                     to="/reports" 
                     icon={<AssessmentIcon />} 
+                    iconPosition="start"
+                  />
+                  <Tab 
+                    label={
+                      <Box display="flex" alignItems="center" gap={0.5}>
+                        AI Insights
+                        <Chip 
+                          label="Premium" 
+                          size="small" 
+                          color="secondary" 
+                          sx={{ 
+                            fontSize: '0.6rem', 
+                            height: 16,
+                            '& .MuiChip-label': { px: 0.5 }
+                          }} 
+                        />
+                      </Box>
+                    }
+                    value="/ai-insights" 
+                    component={Link} 
+                    to="/ai-insights" 
+                    icon={<SmartToyIcon />} 
                     iconPosition="start"
                   />
                 </>

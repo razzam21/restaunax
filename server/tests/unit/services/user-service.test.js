@@ -1,3 +1,29 @@
+// Mock config first
+jest.mock('../../../src/config', () => ({
+  jwt: {
+    accessSecret: 'test-access-secret',
+    refreshSecret: 'test-refresh-secret',
+    accessExpiresIn: '15m',
+    refreshExpiresIn: '7d',
+  },
+  bcrypt: {
+    saltRounds: 12,
+  },
+  logging: {
+    level: 'info',
+  },
+}));
+
+// Mock logger
+jest.mock('../../../src/utils/logger', () => ({
+  createLogger: jest.fn(() => ({
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  })),
+}));
+
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const userService = require('../../../src/services/user-service');

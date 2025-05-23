@@ -107,6 +107,18 @@ const categoryOrderSchema = Joi.object({
   ).required().min(1)
 });
 
+// AI Insights Schemas
+const demandForecastSchema = Joi.object({
+  startDate: Joi.date().iso().required(),
+  endDate: Joi.date().iso().min(Joi.ref('startDate')).required(),
+  lookbackDays: Joi.number().integer().min(7).max(365).default(30)
+});
+
+const menuOptimizationSchema = Joi.object({
+  lookbackDays: Joi.number().integer().min(7).max(365).default(30),
+  includeInactive: Joi.boolean().default(false)
+});
+
 module.exports = {
   createOrderSchema,
   updateOrderSchema,
@@ -121,5 +133,9 @@ module.exports = {
   // Menu category schemas
   menuCategorySchema,
   menuCategoryUpdateSchema,
-  categoryOrderSchema
+  categoryOrderSchema,
+  
+  // AI Insights schemas
+  demandForecastSchema,
+  menuOptimizationSchema
 };

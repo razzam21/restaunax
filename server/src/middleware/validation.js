@@ -10,7 +10,9 @@ const {
   menuItemBulkUpdateSchema,
   menuCategorySchema,
   menuCategoryUpdateSchema,
-  categoryOrderSchema
+  categoryOrderSchema,
+  demandForecastSchema,
+  menuOptimizationSchema
 } = require('../utils/validation-schemas');
 
 // Create a validation middleware that validates request data against a Joi schema
@@ -74,6 +76,16 @@ const validateMenuItemBulk = validate(menuItemBulkUpdateSchema);
 const validateMenuCategory = validate(menuCategorySchema);
 const validateMenuCategoryOrder = validate(categoryOrderSchema);
 
+// AI Insights validation
+const validateInsightRequest = (type) => {
+  const schemas = {
+    demand_forecast: demandForecastSchema,
+    menu_optimization: menuOptimizationSchema,
+  };
+  
+  return validate(schemas[type] || Joi.object());
+};
+
 module.exports = {
   validate,
   sanitize,
@@ -86,5 +98,6 @@ module.exports = {
   validateMenuItemUpdate,
   validateMenuItemBulk,
   validateMenuCategory,
-  validateMenuCategoryOrder
+  validateMenuCategoryOrder,
+  validateInsightRequest
 };

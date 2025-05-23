@@ -10,6 +10,7 @@ import RestaurantSettingsPage from './pages/RestaurantSettingsPage';
 import DashboardPage from './pages/DashboardPage';
 import ReportsPage from './pages/ReportsPage';
 import MenuManagementPage from './pages/MenuManagementPage';
+import AIInsightsPage from './pages/AIInsightsPage';
 import LoginPage from './components/auth/LoginPage';
 import UnauthorizedPage from './components/auth/UnauthorizedPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -19,6 +20,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { DashboardProvider } from './contexts/DashboardContext';
 import { ReportProvider } from './contexts/ReportContext';
+import { AIProvider } from './contexts/AIContext';
 
 const App = () => {
   return (
@@ -28,6 +30,7 @@ const App = () => {
           <OrderProvider>
             <DashboardProvider>
               <ReportProvider>
+                <AIProvider>
             <Box
               sx={{
                 display: 'flex',
@@ -67,6 +70,9 @@ const App = () => {
                     <Route path="/dashboard" element={<DashboardPage />} />
                     <Route path="/reports" element={<ReportsPage />} />
                     
+                    {/* AI Insights - accessible by manager & owner */}
+                    <Route path="/ai-insights" element={<AIInsightsPage />} />
+                    
                     {/* Restaurant settings - accessible by owner */}
                     <Route path="/settings" element={<RestaurantSettingsPage />} />
                   </Route>
@@ -76,6 +82,7 @@ const App = () => {
                 <Route path="*" element={<Navigate to="/login" replace />} />
               </Routes>
             </Box>
+                </AIProvider>
               </ReportProvider>
             </DashboardProvider>
           </OrderProvider>

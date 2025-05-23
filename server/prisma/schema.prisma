@@ -23,6 +23,8 @@ model Restaurant {
   menuCategories MenuCategory[] // New relationship
   orders         Order[]
   users          User[]
+  aiJobs         AIJob[]
+  aiInsights     AIInsight[]
 }
 
 model MenuItem {
@@ -104,6 +106,7 @@ model User {
   reportConfigs ReportConfig[]
   restaurant    Restaurant            @relation(fields: [restaurantId], references: [id])
   wsConnections WebSocketConnection[]
+  aiJobs        AIJob[]
 }
 
 model RefreshToken {
@@ -192,6 +195,49 @@ model WebSocketConnection {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model AIJob {
+  id               String      @id @default(uuid())
+  restaurantId     String
+  userId           String
+  type             AIJobType
+  status           AIJobStatus @default(pending)
+  parameters       Json? // Input parameters for the job
+  progress         Float       @default(0) // 0-100 percentage
+  estimatedCompletion DateTime?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  error            String? // Error message if job failed
+  result           Json? // AI analysis result
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  restaurant       Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  insight          AIInsight?
+
+  @@index([restaurantId, status])
+  @@index([userId])
+}
+
+model AIInsight {
+  id           String          @id @default(uuid())
+  jobId        String          @unique
+  restaurantId String
+  type         AIInsightType
+  title        String
+  summary      String
+  data         Json // Structured insight data
+  confidence   Float // 0-1 confidence score
+  validUntil   DateTime? // Optional expiration for insights
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  job          AIJob           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  restaurant   Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId, type])
+  @@index([validUntil])
+}
+
 enum OrderType {
   delivery
   pickup
@@ -208,4 +254,24 @@ enum UserRole {
   wait_staff
   manager
   owner
+}
+
+enum AIJobType {
+  demand_forecast
+  menu_optimization
+  customer_segmentation
+}
+
+enum AIJobStatus {
+  pending
+  running
+  completed
+  failed
+  cancelled
+}
+
+enum AIInsightType {
+  demand_forecast
+  menu_optimization
+  customer_segmentation
 }

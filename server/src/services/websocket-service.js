@@ -422,11 +422,41 @@ function broadcastMenuUpdate(restaurantId, menuData) {
   });
 }
 
+/**
+ * Broadcast AI job status update to restaurant users
+ * @param {string} restaurantId - Restaurant ID
+ * @param {Object} jobData - Job status data
+ */
+function broadcastAIJobUpdate(restaurantId, jobData) {
+  // Send to managers and owners only (AI features are premium)
+  sendToRestaurantRoles(restaurantId, ['manager', 'owner'], {
+    type: 'ai_job_update',
+    timestamp: new Date().toISOString(),
+    data: jobData
+  });
+}
+
+/**
+ * Broadcast AI insight completion to restaurant users
+ * @param {string} restaurantId - Restaurant ID
+ * @param {Object} insightData - Completed insight data
+ */
+function broadcastAIInsightReady(restaurantId, insightData) {
+  // Send to managers and owners only (AI features are premium)
+  sendToRestaurantRoles(restaurantId, ['manager', 'owner'], {
+    type: 'ai_insight_ready',
+    timestamp: new Date().toISOString(),
+    data: insightData
+  });
+}
+
 module.exports = {
   initializeWebSocketServer,
   broadcastOrderStatusChange,
   broadcastNewOrder,
   broadcastRevenueUpdate,
   broadcastOrderListUpdate,
-  broadcastMenuUpdate
+  broadcastMenuUpdate,
+  broadcastAIJobUpdate,
+  broadcastAIInsightReady
 };
