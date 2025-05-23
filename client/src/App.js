@@ -11,6 +11,7 @@ import DashboardPage from './pages/DashboardPage';
 import ReportsPage from './pages/ReportsPage';
 import MenuManagementPage from './pages/MenuManagementPage';
 import AIInsightsPage from './pages/AIInsightsPage';
+import SystemHealthPage from './pages/SystemHealthPage';
 import LoginPage from './components/auth/LoginPage';
 import UnauthorizedPage from './components/auth/UnauthorizedPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -72,6 +73,9 @@ const App = () => {
                     
                     {/* AI Insights - accessible by manager & owner */}
                     <Route path="/ai-insights" element={<AIInsightsPage />} />
+                    
+                    {/* System Health - accessible by owner & manager */}
+                    <Route path="/system-health" element={<SystemHealthPage />} />
                     
                     {/* Restaurant settings - accessible by owner */}
                     <Route path="/settings" element={<RestaurantSettingsPage />} />

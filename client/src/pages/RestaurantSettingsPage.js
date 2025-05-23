@@ -23,6 +23,8 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { restaurantService } from '../services/api';
+import { Link } from 'react-router-dom';
+import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 
 const RestaurantSettingsPage = () => {
   const { user } = useAuth();
@@ -359,6 +361,46 @@ const RestaurantSettingsPage = () => {
               </Grid>
             </Grid>
           </Paper>
+          
+          {/* System Health Section for owners and managers */}
+          {(user.role === 'owner' || user.role === 'manager') && (
+            <Paper sx={{ p: 3, mt: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                System Health
+              </Typography>
+              
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Monitor Docker containers, WebSocket connections, and system performance.
+              </Typography>
+              
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <MonitorHeartIcon color="primary" />
+                    <Box>
+                      <Typography variant="h6">
+                        System Health Monitor
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        View real-time status of containers, services, and system metrics
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+                <CardActions>
+                  <Button
+                    component={Link}
+                    to="/system-health"
+                    variant="contained"
+                    color="primary"
+                    startIcon={<MonitorHeartIcon />}
+                  >
+                    Open System Health
+                  </Button>
+                </CardActions>
+              </Card>
+            </Paper>
+          )}
         </form>
       )}
     </Container>

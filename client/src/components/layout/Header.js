@@ -23,6 +23,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
+import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
@@ -42,6 +43,7 @@ const Header = () => {
     if (path.startsWith('/dashboard')) return '/dashboard';
     if (path.startsWith('/reports')) return '/reports';
     if (path.startsWith('/ai-insights')) return '/ai-insights';
+    if (path.startsWith('/system-health')) return '/system-health';
     if (path.startsWith('/settings')) return '/settings';
     return '/orders'; // Default
   };
@@ -162,6 +164,14 @@ const Header = () => {
                     component={Link} 
                     to="/ai-insights" 
                     icon={<SmartToyIcon />} 
+                    iconPosition="start"
+                  />
+                  <Tab 
+                    label="System Health" 
+                    value="/system-health" 
+                    component={Link} 
+                    to="/system-health" 
+                    icon={<MonitorHeartIcon />} 
                     iconPosition="start"
                   />
                 </>

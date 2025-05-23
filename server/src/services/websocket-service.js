@@ -450,6 +450,58 @@ function broadcastAIInsightReady(restaurantId, insightData) {
   });
 }
 
+/**
+ * Get active connections count for health monitoring
+ * @returns {number} Number of active WebSocket connections
+ */
+function getActiveConnectionsCount() {
+  let total = 0;
+  for (const userConnections of connections.values()) {
+    total += userConnections.size;
+  }
+  return total;
+}
+
+/**
+ * Get connection statistics for health monitoring
+ * @returns {Object} Connection statistics
+ */
+function getConnectionStats() {
+  const stats = {
+    totalUsers: connections.size,
+    totalConnections: getActiveConnectionsCount(),
+    restaurantCounts: {},
+    userCounts: {},
+  };
+
+  // Count connections per restaurant
+  for (const [restaurantId, connections] of restaurantConnections) {
+    stats.restaurantCounts[restaurantId] = connections.size;
+  }
+
+  // Count connections per user
+  for (const [userId, userConnections] of connections) {
+    stats.userCounts[userId] = userConnections.size;
+  }
+
+  return stats;
+}
+
+/**
+ * Broadcast system health update to owners and managers
+ * @param {Object} healthData - System health data
+ */
+function broadcastSystemHealthUpdate(healthData) {
+  // Send to all restaurants but only to owners and managers
+  for (const restaurantId of restaurantConnections.keys()) {
+    sendToRestaurantRoles(restaurantId, ['owner', 'manager'], {
+      type: 'system_health_update',
+      timestamp: new Date().toISOString(),
+      data: healthData
+    });
+  }
+}
+
 module.exports = {
   initializeWebSocketServer,
   broadcastOrderStatusChange,
@@ -458,5 +510,8 @@ module.exports = {
   broadcastOrderListUpdate,
   broadcastMenuUpdate,
   broadcastAIJobUpdate,
-  broadcastAIInsightReady
+  broadcastAIInsightReady,
+  getActiveConnectionsCount,
+  getConnectionStats,
+  broadcastSystemHealthUpdate
 };

@@ -107,6 +107,7 @@ model User {
   restaurant    Restaurant            @relation(fields: [restaurantId], references: [id])
   wsConnections WebSocketConnection[]
   aiJobs        AIJob[]
+  systemLogs    SystemLog[]
 }
 
 model RefreshToken {
@@ -238,6 +239,69 @@ model AIInsight {
   @@index([validUntil])
 }
 
+model SystemHealth {
+  id              String            @id @default(uuid())
+  serviceName     String
+  status          HealthStatus
+  lastCheckAt     DateTime          @default(now())
+  responseTime    Int? // Response time in milliseconds
+  uptime          BigInt? // Uptime in seconds
+  errorCount      Int               @default(0)
+  lastError       String?
+  metadata        Json? // Additional service-specific data
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@unique([serviceName])
+  @@index([status])
+  @@index([lastCheckAt])
+}
+
+model Container {
+  id          String          @id @default(uuid())
+  name        String
+  status      ContainerStatus
+  image       String
+  ports       Json? // Port mappings
+  startedAt   DateTime?
+  restartCount Int            @default(0)
+  cpuUsage    Float? // CPU usage percentage
+  memoryUsage BigInt? // Memory usage in bytes
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([name])
+  @@index([status])
+}
+
+model FeatureFlag {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  enabled     Boolean  @default(false)
+  description String?
+  config      Json? // Additional feature configuration
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([enabled])
+}
+
+model SystemLog {
+  id        String    @id @default(uuid())
+  level     LogLevel
+  message   String
+  service   String
+  timestamp DateTime  @default(now())
+  metadata  Json? // Additional log data
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id])
+
+  @@index([level])
+  @@index([service])
+  @@index([timestamp])
+  @@index([userId])
+}
+
 enum OrderType {
   delivery
   pickup
@@ -274,4 +338,27 @@ enum AIInsightType {
   demand_forecast
   menu_optimization
   customer_segmentation
+}
+
+enum HealthStatus {
+  healthy
+  degraded
+  unhealthy
+  unknown
+}
+
+enum ContainerStatus {
+  running
+  stopped
+  restarting
+  paused
+  exited
+  dead
+}
+
+enum LogLevel {
+  error
+  warn
+  info
+  debug
 }
