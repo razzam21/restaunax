@@ -14,6 +14,8 @@ MVP 2: Login System – Authentication and role-based authorization with best pr
 MVP 3: Theming – Dynamic color theming based on user's restaurant.  
 MVP 4: Enhanced Management Dashboard & Reports
 MVP 5: Menu Management – Ability for managers and owners to manage menu items.
+MVP 6: AI-Powered Demand Forecasting – Predictive analysis with asynchronous processing.
+MVP 7: Advanced AI Insights – Menu optimization and customer segmentation.
 
 4. Development Methodology
 
@@ -470,6 +472,256 @@ Menu Category Schema
 - Menu categories created by owners, can be used by managers
 - Security: Role-based access control; input sanitization; CORS restricted; HTTPS enforcement
 
+6.6 MVP 6: AI-Powered Demand Forecasting
+Objective: Leverage machine learning to predict future demand patterns with asynchronous processing via WebSockets.
+Components: Ollama AI integration, asynchronous job processing, WebSocket notifications, and specialized dashboard.
+
+Feature | Description | Details
+--- | --- | ---
+**Backend** |  |  
+POST /insights/demand-forecast | Request demand forecast | - Initiates an asynchronous job to predict future demand.<br>- Accepts JSON payload with time range parameters.<br>- Returns job ID for tracking (202 Accepted status).<br>- Security: CORS restricted; HTTPS; owner/manager-only.<br>- TDD: Tests for job creation, parameter validation, authorization.
+GET /insights/jobs/:id | Check job status | - Returns current status of an insight generation job.<br>- Response includes status, progress percentage, and estimated completion time.<br>- Security: CORS restricted; HTTPS; role validation against job owner.<br>- TDD: Tests for status reporting, error handling, authorization.
+WebSocket /ws/insights | Real-time job updates | - Establishes WebSocket connection for insight job status updates.<br>- Pushes events for job progress and completion.<br>- Notifies when insights are ready for viewing.<br>- Security: JWT authentication; role validation.<br>- TDD: Tests for event emission, connection handling, authorization.
+GET /insights/demand-forecast/:jobId | Retrieve forecast results | - Returns completed demand forecast from a finished job.<br>- Response: JSON with forecast data and confidence levels.<br>- Security: CORS restricted; HTTPS; owner/manager-only; job owner validation.<br>- TDD: Tests for data retrieval, authorization, error handling.
+**Frontend** |  |  
+Demand Forecast Dashboard | Predictive planning | - Request form for generating new demand forecasts.<br>- Calendar view showing projected demand patterns when available.<br>- Notification center for completed forecast jobs.<br>- Status indicators for in-progress jobs with progress visualization.<br>- Security: Escape displayed data; verify calculation accuracy.<br>- TDD: Tests for form submission, WebSocket integration, notification handling.
+Notification System | Job status updates | - Persistent notification center accessible from any screen.<br>- Real-time status updates via WebSocket connection.<br>- Desktop notifications (with permission) for completed jobs.<br>- Clickable notifications that navigate to completed results.<br>- Security: Validate notification ownership; sanitize content.<br>- TDD: Tests for WebSocket events, notification rendering, navigation.
+
+**Data Structure**:
+
+Job Schema
+```json
+{
+  "id": "string", // UUID
+  "restaurantId": "string", // UUID
+  "userId": "string", // UUID of job creator
+  "type": "string", // Enum: ["demand-forecast"]
+  "status": "string", // Enum: ["queued", "processing", "completed", "failed"]
+  "progress": "number", // 0-100 percentage
+  "parameters": "object", // Job-specific parameters
+  "estimatedCompletionTime": "string", // ISO 8601
+  "result": "object", // Job-specific result data (null until completed)
+  "error": "string", // Error message if failed (null otherwise)
+  "createdAt": "string", // ISO 8601
+  "updatedAt": "string", // ISO 8601
+  "completedAt": "string" // ISO 8601 (null until completed)
+}
+```
+
+Forecast Schema
+```json
+{
+  "id": "string", // UUID
+  "restaurantId": "string", // UUID
+  "forecastDate": "string", // ISO 8601
+  "timeSlots": [
+    {
+      "startTime": "string", // e.g., "18:00"
+      "endTime": "string", // e.g., "19:00"
+      "predictedOrderCount": "number", // e.g., 25
+      "confidenceInterval": {
+        "lower": "number", // e.g., 20
+        "upper": "number" // e.g., 30
+      },
+      "recommendedStaffing": "number", // e.g., 4
+      "predictedRevenue": "number", // e.g., 1250.75
+      "topPredictedItems": [
+        {
+          "itemId": "string", // UUID
+          "quantity": "number" // e.g., 12
+        }
+      ]
+    }
+  ],
+  "externalFactors": [
+    {
+      "factor": "string", // e.g., "Local Festival", "Weather", "Holiday"
+      "impact": "number", // e.g., 1.25 (multiplier)
+      "description": "string" // e.g., "Annual Food Festival expected to increase foot traffic by 25%"
+    }
+  ],
+  "createdAt": "string", // ISO 8601
+  "updatedAt": "string" // ISO 8601
+}
+```
+
+**Implementation Details**:
+- Ollama will be used as the primary AI engine
+- Asynchronous job queue manages long-running AI tasks
+- WebSockets provide real-time job status updates and notifications
+- Connection details and API keys stored securely in server's .env file:
+  ```
+  # Ollama configuration
+  OLLAMA_ENABLED=true
+  OLLAMA_API_ENDPOINT=http://localhost:11434/api
+  OLLAMA_MODEL=llama3
+  OLLAMA_REQUEST_TIMEOUT=60000
+  OLLAMA_MAX_TOKENS=2048
+  OLLAMA_TEMPERATURE=0.7
+  
+  # Job queue configuration
+  JOB_QUEUE_CONCURRENCY=2
+  ```
+- Feature toggling system to enable/disable AI features:
+  - OLLAMA_ENABLED environment variable controls AI feature availability
+  - When disabled, UI shows upgrade prompts instead of AI features
+  - Upgrade prompts direct users to contact Restaunax for premium features
+- Job processing architecture for handling time-intensive AI operations:
+  - Bull queue with Redis for job management
+  - Separate worker processes to prevent API blocking
+  - Progress tracking and time estimation
+- UI designed for asynchronous operations:
+  - Immediate feedback on job submission
+  - Progress indicators for running jobs
+  - Notification system for completed insights
+  - Persistent job history for reviewing past analyses
+  - Feature upgrade prompts when AI is disabled
+
+**Assumptions**:
+- Long-running AI operations (30 seconds to several minutes) require asynchronous processing
+- Requires minimum of 3 months of order history data for meaningful analysis
+- User experience optimized for asynchronous workflow with clear status indicators
+- All analysis is restaurant-specific (no cross-restaurant data sharing)
+- Insights accessible only to manager and owner roles
+- Redis used alongside PostgreSQL for job queue management
+- AI features can be enabled/disabled via environment configuration
+- Security: Role-based access; data anonymization; CORS restricted; HTTPS enforcement
+
+6.7 MVP 7: Advanced AI Insights
+Objective: Extend AI capabilities to menu optimization and customer segmentation with asynchronous processing.
+Components: Ollama AI integration, menu performance analysis, customer data analysis, and interactive insight dashboards.
+
+Feature | Description | Details
+--- | --- | ---
+**Backend** |  |  
+POST /insights/menu-optimization | Request menu analysis | - Initiates an asynchronous job to analyze menu performance and suggest improvements.<br>- Accepts JSON payload with optional category filter.<br>- Returns job ID for tracking (202 Accepted status).<br>- Security: CORS restricted; HTTPS; owner-only.<br>- TDD: Tests for job creation, parameter validation, authorization.
+POST /insights/customer-segments | Request segmentation | - Initiates an asynchronous job to identify customer segments.<br>- Accepts JSON payload with segmentation parameters.<br>- Returns job ID for tracking (202 Accepted status).<br>- Security: CORS restricted; HTTPS; owner-only.<br>- TDD: Tests for job creation, parameter validation, authorization.
+GET /insights/menu-optimization/:jobId | Retrieve menu insights | - Returns completed menu optimization suggestions from a finished job.<br>- Response: JSON with menu insights and revenue impact projections.<br>- Security: CORS restricted; HTTPS; owner-only; job owner validation.<br>- TDD: Tests for data retrieval, authorization, error handling.
+GET /insights/customer-segments/:jobId | Retrieve segments | - Returns completed customer segmentation from a finished job.<br>- Response: JSON with segment definitions and characteristics.<br>- Security: CORS restricted; HTTPS; owner-only; job owner validation.<br>- TDD: Tests for data retrieval, authorization, error handling.
+POST /insights/feedback | Insight feedback | - Collects feedback on AI recommendations for model improvement.<br>- Accepts JSON with insight ID, rating, and comments.<br>- Returns updated recommendation confidence.<br>- Security: Sanitize inputs; CORS restricted; HTTPS; owner/manager-only.<br>- TDD: Tests for feedback recording, model improvement impact.
+**Frontend** |  |  
+Menu Optimization Dashboard | Menu enhancement | - Request form for generating menu optimization insights.<br>- Visualizes menu item relationships and pairing opportunities.<br>- Highlights price optimization suggestions with projected revenue impact.<br>- Notification center for completed analysis jobs.<br>- Security: Escape displayed data; owner-only for critical suggestions.<br>- TDD: Tests for form validation, notification handling, authorization checks.
+Customer Segment Dashboard | Segment analysis | - Request form for customer segmentation analysis.<br>- Visualizes customer segments with defining characteristics.<br>- Shows ordering patterns by segment with actionable recommendations.<br>- Allows drill-down into each segment for detailed analysis.<br>- Security: Anonymize customer data; owner-only access.<br>- TDD: Tests for segment visualization, data anonymization, authorization.
+Insights Overview | Comprehensive view | - Aggregates all insights in a single dashboard view.<br>- Prioritizes insights by potential business impact.<br>- Tracks implemented suggestions and their outcomes.<br>- Provides unified notification center for all insight jobs.<br>- Security: Role-based access to different insight types.<br>- TDD: Tests for dashboard rendering, notification integration.
+Feedback System | Model improvement | - Rating interface for each AI recommendation.<br>- Comment submission for qualitative feedback.<br>- Tracking of recommendation accuracy over time.<br>- Security: Input validation; sanitization.<br>- TDD: Tests for feedback collection, submission validation.
+
+**Data Structure**:
+
+Menu Optimization Schema
+```json
+{
+  "id": "string", // UUID
+  "restaurantId": "string", // UUID
+  "recommendations": [
+    {
+      "type": "string", // Enum: ["price", "pairing", "removal", "addition", "promotion"]
+      "itemId": "string", // UUID (for existing items)
+      "itemName": "string", // e.g., "Margherita Pizza"
+      "currentValue": "any", // e.g., 12.99 for price
+      "recommendedValue": "any", // e.g., 14.99 for price
+      "reasoning": "string", // e.g., "Price elasticity analysis indicates opportunity for 15% price increase with minimal impact on volume"
+      "confidenceScore": "number", // 0-1 score
+      "estimatedImpact": {
+        "metric": "string", // e.g., "revenue", "profit_margin"
+        "value": "number", // e.g., 8.5 (percent)
+        "timeframe": "string" // e.g., "monthly"
+      }
+    }
+  ],
+  "pairingOpportunities": [
+    {
+      "primaryItemId": "string", // UUID
+      "primaryItemName": "string", // e.g., "Caesar Salad"
+      "suggestedPairings": [
+        {
+          "itemId": "string", // UUID
+          "itemName": "string", // e.g., "Garlic Bread"
+          "coOccurrenceRate": "number", // e.g., 0.65 (65% of time)
+          "promotionSuggestion": "string" // e.g., "Offer as combo for $2 discount"
+        }
+      ]
+    }
+  ],
+  "createdAt": "string", // ISO 8601
+  "updatedAt": "string" // ISO 8601
+}
+```
+
+Customer Segment Schema
+```json
+{
+  "id": "string", // UUID
+  "restaurantId": "string", // UUID
+  "segments": [
+    {
+      "segmentId": "string", // UUID
+      "name": "string", // e.g., "Weekend Family Diners"
+      "size": "number", // e.g., 28 (percent of customers)
+      "characteristics": [
+        {
+          "trait": "string", // e.g., "Order Day"
+          "value": "string", // e.g., "Weekend"
+          "prevalence": "number" // e.g., 92 (percent of segment)
+        }
+      ],
+      "orderingPatterns": {
+        "averageOrderValue": "number", // e.g., 65.50
+        "mostCommonItems": [
+          {
+            "itemId": "string", // UUID
+            "itemName": "string", // e.g., "Family Pizza Bundle"
+            "orderFrequency": "number" // e.g., 75 (percent of segment orders)
+          }
+        ],
+        "typicalOrderTimes": [
+          {
+            "day": "string", // e.g., "Saturday"
+            "timeRange": "string", // e.g., "17:00-19:00"
+            "percentage": "number" // e.g., 65 (percent of segment orders)
+          }
+        ]
+      },
+      "recommendations": [
+        {
+          "type": "string", // e.g., "promotion", "menu_addition"
+          "description": "string", // e.g., "Create family bundle with most ordered items"
+          "expectedImpact": "string" // e.g., "Increase weekend revenue by 8-12%"
+        }
+      ]
+    }
+  ],
+  "createdAt": "string", // ISO 8601
+  "updatedAt": "string" // ISO 8601
+}
+```
+
+**Implementation Details**:
+- Builds upon the asynchronous job processing framework from MVP 6
+- Uses the same Ollama AI engine with specialized prompts for different insight types
+- Honors the same OLLAMA_ENABLED feature flag from the .env file
+- Enhanced notification system integrates all insight types
+- Comprehensive dashboard provides unified view of all insights
+- Upgrade prompts displayed when accessing disabled AI features
+
+**Frontend Components**:
+- AI Feature Detection:
+  - System checks OLLAMA_ENABLED status on initialization
+  - UI adapts based on feature availability
+- Premium Feature Prompts:
+  - Modal dialogs inform users about premium AI features
+  - Contact information for Restaunax sales team
+  - Visual indicators for premium features throughout the interface
+- Graceful Degradation:
+  - Standard reports and analytics remain available when AI is disabled
+  - UI clearly indicates which features require upgrade
+
+**Assumptions**:
+- Customer segmentation requires sufficient order volume with customer identifiers
+- Menu optimization most effective with detailed menu and order history
+- All insights processed asynchronously with WebSocket notifications
+- AI features can be purchased as premium add-on
+- Security: Role-based access; data anonymization; CORS restricted; HTTPS enforcement
+
 7. Non-Functional Requirements
 
 Performance: API response time < 200ms for GET, < 500ms for POST/PATCH (100 concurrent users).  
@@ -492,22 +744,31 @@ Responsive Design: Supports desktops (1920x1080), tablets (1024x768), phones (37
 
 8. Technical Stack
 
-Backend: Node.js, Express, Prisma, PostgreSQL, Phinx, JWT, bcrypt, sanitize-html, express-rate-limit, Jest, Socket.io, multer (file upload), sharp (image processing).  
-Frontend: React, Material UI, Axios, React Router, Chart.js (MVP 4), React Dropzone (file upload), React Beautiful DND (drag-and-drop), Jest.  
+Backend: Node.js, Express, Prisma, PostgreSQL, Phinx, JWT, bcrypt, sanitize-html, express-rate-limit, Jest, Socket.io, multer (file upload), sharp (image processing), node-dashboard (for model monitoring), Bull (job queue), Redis (queue storage).  
+Frontend: React, Material UI, Axios, React Router, Chart.js (MVP 4), React Dropzone (file upload), React Beautiful DND (drag-and-drop), Recharts (advanced visualizations), React Toastify (notifications), Jest.  
+ML/AI: Ollama (primary AI engine), axios (for Ollama API communication), TensorFlow.js (supplementary modeling), brain.js (neural networks for time-series), node-cron (scheduled model training).
 Deployment: Docker, Docker Compose.  
 Development Tools: ESLint, Prettier, GitHub Actions (CI for tests).
 
 9. Deployment (Docker)
 
-Containers: Frontend (React), backend (Node.js/Express), database (PostgreSQL).  
+Containers: Frontend (React), backend (Node.js/Express), database (PostgreSQL), Redis (job queue).  
+Optional External Services: Ollama (AI engine) - can be self-hosted or provided by Restaunax.
 Docker Compose: Orchestrates services, ports, volumes, environment variables.  
 Security: Backend container uses HTTPS (self-signed cert in dev, proper cert in prod).  
+AI Setup: 
+  - If OLLAMA_ENABLED=true, system connects to Ollama API at configured endpoint
+  - Ollama can be deployed as a container or accessed as an external service
+  - Premium AI service available through Restaunax cloud offering
+Job Processing: Redis container for Bull queue management with persistence enabled.
+Environment Variables: Sensitive configuration stored in .env files, included in .gitignore.
+Feature Flags: Environment variables control premium feature availability.
 TDD: Tests for container startup, service communication, CORS enforcement.
 
 Sample Docker Compose (referenced from prior artifact, ID retained):  
 
 File: docker-compose.yml (artifact_id: f5c4f75b-a374-47aa-b68c-bddf77f806e5)  
-Content: Defines services for frontend, backend, and database.
+Content: Defines services for frontend, backend, database, and Redis, with optional Ollama integration.
 
 10. Deliverables
 
@@ -516,6 +777,8 @@ MVP 2: Login system (auth endpoints, RBAC, user management, audit logging).
 MVP 3: Dynamic theming (theme files, Material UI integration).  
 MVP 4: Enhanced Management Dashboard & Reports (API, UI, WebSockets, business analytics, downloadable reports).  
 MVP 5: Menu Management (API, menu CRUD, category management, UI for managers/owners).
+MVP 6: AI-Powered Demand Forecasting (Ollama integration, async processing, WebSocket notifications).
+MVP 7: Advanced AI Insights (Menu optimization, customer segmentation, unified insights dashboard).
 General:  
 OpenAPI/Postman API documentation.  
 Phinx migrations and seeders.  
@@ -545,6 +808,28 @@ MVP 5:
   - Image upload for menu items works correctly
   - Role-based access prevents unauthorized users from accessing menu management
   - Changes to menu items reflect in order creation immediately
+MVP 6:
+  - Asynchronous job processing system successfully handles AI forecasting
+  - WebSocket notifications alert users when forecasts are ready
+  - Demand forecasting provides accurate predictions (>75% accuracy)
+  - UI properly handles the asynchronous nature of AI processing
+  - Progress tracking gives users visibility into job status
+  - Forecast insights presented in intuitive calendar/time-based visualizations
+  - All forecast results properly secured with role-based access control
+  - Feature toggling properly enables/disables AI functionality based on configuration
+  - Upgrade prompts appear when users attempt to access disabled premium features
+  - Standard analytics remain available when AI features are disabled
+MVP 7:
+  - Menu optimization suggests actionable improvements with revenue impact
+  - Customer segmentation correctly identifies distinct ordering patterns
+  - Unified insights dashboard provides comprehensive business intelligence
+  - Feedback mechanism allows continuous improvement of AI models
+  - All analyses properly anonymize customer data for privacy
+  - Complex insights presented in easy-to-understand visualizations
+  - Asynchronous processing integrated with notification system
+  - Premium feature detection correctly identifies enabled/disabled status
+  - Upgrade prompts maintain consistent branding and messaging
+  - Clear pathway provided for users to inquire about premium features
 
 General:  
 Order creation/update takes < 10 seconds.  
@@ -583,3 +868,10 @@ Menu engineering analytics to optimize menu profitability.
 Table management and reservation system.
 Kitchen display system integration.
 Online ordering and delivery integration.
+Advanced AI capabilities:
+  - Natural language processing for customer reviews analysis
+  - Computer vision for food preparation quality control
+  - Reinforcement learning for dynamic pricing optimization
+  - Anomaly detection for fraud prevention and operational issues
+  - Multi-restaurant trend analysis for franchise operations
+  - Voice assistant integration for hands-free operations
