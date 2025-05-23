@@ -1,6 +1,6 @@
 Restaunax Real-time Order Management Dashboard PRD
 1. Product Overview
-Product Name: Restaunax Order Management DashboardPurpose: To enable wait staff to create and update customer orders and allow managers/owners to monitor order status in real-time, improving restaurant operational efficiency.Objective: Deliver a series of minimum viable products (MVPs) for a secure, scalable, and responsive order management system, developed using Test-Driven Development (TDD) with robust protections against XSS, SQL injection, and proper CORS configuration. Authentication and authorization will follow industry best practices (e.g., OWASP guidelines). The system will run in Docker containers, use PostgreSQL with Prisma and Phinx migrations, and support dynamic theming.
+Product Name: Restaunax Order Management DashboardPurpose: To enable wait staff to create and update customer orders and allow managers/owners to monitor order status in real-time, improving restaurant operational efficiency.Objective: Deliver a series of minimum viable products (MVPs) for a secure, scalable, and responsive order management system, developed using Test-Driven Development (TDD) with robust protections against XSS, SQL injection, and proper CORS configuration. Authentication and authorization will follow industry best practices (e.g., OWASP guidelines). The system will run in Docker containers, use PostgreSQL with Prisma migrations, and support dynamic theming.
 2. Target Audience
 
 Primary Users: Wait staff (creating and updating orders).  
@@ -71,7 +71,7 @@ TDD: Tests for token validation, role enforcement, brute-force protection, secur
 
 6. Key Features and Requirements
 6.1 MVP 1: Order System
-Objective: Enable wait staff to create and update orders and managers/owners to view orders by status, with a secure backend and responsive UI.Components: Backend API, frontend dashboard, PostgreSQL database, Phinx migrations, Docker deployment.
+Objective: Enable wait staff to create and update orders and managers/owners to view orders by status, with a secure backend and responsive UI.Components: Backend API, frontend dashboard, PostgreSQL database, Prisma migrations, Docker deployment.
 Backend (Node.js/Express, Prisma, PostgreSQL)
 
 
@@ -132,7 +132,7 @@ Support multiple devices
 - Material UI grid for desktops (1920x1080), tablets (1024x768), phones (375x667).- Touch-friendly buttons.- Security: No impact on XSS/SQL; CORS not applicable.- TDD: Tests for responsive rendering (e.g., via Testing Library).
 
 
-Data Storage (PostgreSQL, Prisma, Phinx)
+Data Storage (PostgreSQL, Prisma)
 
 
 
@@ -147,14 +147,14 @@ Persistent storage
 - Stores orders.- Prisma ORM with parameterized queries.- Runs in Docker container.- Security: Parameterized queries prevent SQL injection.- TDD: Tests for CRUD operations, injection prevention.
 
 
-Phinx Migrations
+Prisma Migrations
 Schema management
-- Migrations for orders, order_items tables.- Command: phinx migrate.- Security: No user input in migrations.- TDD: Tests for migration integrity.
+- Migrations for orders, order_items tables.- Command: npx prisma migrate deploy.- Security: No user input in migrations.- TDD: Tests for migration integrity.
 
 
 Seed Script
 Generate 10-15 mock orders
-- Creates orders with varied statuses/types.- Uses Phinx seeders (phinx seed:run).- Security: Sanitize seed data.- TDD: Tests for seed data consistency, XSS-safe data.
+- Creates orders with varied statuses/types.- Uses Prisma seeders (npm run seed).- Security: Sanitize seed data.- TDD: Tests for seed data consistency, XSS-safe data.
 
 
 Order Schema
@@ -270,7 +270,7 @@ Details
 
 User Schema
 Store user data
-- Table: users (id, restaurantId, username, password, role).- Phinx migration for users, audit_logs tables.- Security: Parameterized queries; hashed passwords.- TDD: Tests for user CRUD, injection prevention.
+- Table: users (id, restaurantId, username, password, role).- Prisma migration for users, audit_logs tables.- Security: Parameterized queries; hashed passwords.- TDD: Tests for user CRUD, injection prevention.
 
 
 User Schema
@@ -737,14 +737,14 @@ Maintainability:
 TDD with Jest (>80% coverage).  
 ESLint/Prettier for code quality.  
 Modular structure (routes, services, components).  
-Phinx migrations for database versioning.
+Prisma migrations for database versioning.
 
 
 Responsive Design: Supports desktops (1920x1080), tablets (1024x768), phones (375x667).
 
 8. Technical Stack
 
-Backend: Node.js, Express, Prisma, PostgreSQL, Phinx, JWT, bcrypt, sanitize-html, express-rate-limit, Jest, Socket.io, multer (file upload), sharp (image processing), node-dashboard (for model monitoring), Bull (job queue), Redis (queue storage).  
+Backend: Node.js, Express, Prisma, PostgreSQL, JWT, bcrypt, sanitize-html, express-rate-limit, Jest, Socket.io, multer (file upload), sharp (image processing), node-dashboard (for model monitoring), Bull (job queue), Redis (queue storage).  
 Frontend: React, Material UI, Axios, React Router, Chart.js (MVP 4), React Dropzone (file upload), React Beautiful DND (drag-and-drop), Recharts (advanced visualizations), React Toastify (notifications), Jest.  
 ML/AI: Ollama (primary AI engine), axios (for Ollama API communication), TensorFlow.js (supplementary modeling), brain.js (neural networks for time-series), node-cron (scheduled model training).
 Deployment: Docker, Docker Compose.  
@@ -781,7 +781,7 @@ MVP 6: AI-Powered Demand Forecasting (Ollama integration, async processing, WebS
 MVP 7: Advanced AI Insights (Menu optimization, customer segmentation, unified insights dashboard).
 General:  
 OpenAPI/Postman API documentation.  
-Phinx migrations and seeders.  
+Prisma migrations and seeders.  
 Jest test suite (>80% coverage, including XSS, SQL injection, CORS, auth tests).  
 README with setup, run, migration, test, and seed instructions.  
 Docker Compose file for local deployment.
