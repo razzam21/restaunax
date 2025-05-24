@@ -195,6 +195,8 @@ class DemandForecastService {
 - Peak hours identification and capacity planning
 - Menu item performance correlation with demand
 - Day-of-week and time-of-day demand variations
+- National and regional holiday impacts on dining patterns
+- Special events and their effect on restaurant demand
 
 Your task is to analyze historical order data and generate accurate demand forecasts.
 
@@ -202,8 +204,17 @@ IMPORTANT INSTRUCTIONS:
 1. Provide predictions for each day in the forecast period
 2. Include hourly predictions for peak identification
 3. Consider seasonal trends, day-of-week patterns, and historical growth
-4. Assess confidence levels based on data quality and consistency
-5. Provide actionable insights and staffing recommendations
+4. Account for national holidays and their impact on dining behavior:
+   - Major holidays (Christmas, Thanksgiving, New Year's, Independence Day, etc.)
+   - Religious holidays (Easter, Passover, Ramadan, etc.)
+   - Federal holidays (Labor Day, Memorial Day, Presidents Day, etc.)
+   - Regional celebrations and local events
+5. Adjust predictions based on holiday patterns:
+   - Reduced demand on major holidays when families cook at home
+   - Increased demand before holidays for takeout/delivery
+   - Different patterns for different types of holidays (family vs. social)
+6. Assess confidence levels based on data quality and consistency
+7. Provide actionable insights and staffing recommendations including holiday considerations
 
 REQUIRED RESPONSE FORMAT (JSON):
 {
@@ -211,8 +222,9 @@ REQUIRED RESPONSE FORMAT (JSON):
   "forecast": [
     {
       "date": "YYYY-MM-DD",
-      "predicted_orders": number,
-      "predicted_revenue": number,
+      "day_of_week": "Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday",
+      "orders": number,
+      "revenue": number,
       "confidence": number (0-1),
       "peak_hours": ["HH:00", "HH:00"],
       "notes": "string"
@@ -228,11 +240,52 @@ REQUIRED RESPONSE FORMAT (JSON):
     "total_predicted_orders": number,
     "total_predicted_revenue": number,
     "average_confidence": number,
+    "peak_day": "Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday",
     "growth_trend": "increasing|stable|decreasing"
   }
 }
 
 Focus on accuracy, provide confidence levels, and give practical recommendations for restaurant operations.`;
+  }
+
+  /**
+   * Get holidays that occur within a date range
+   * @private
+   * @param {Date} startDate - Start date
+   * @param {Date} endDate - End date
+   * @returns {string} Holiday information for the period
+   */
+  _getHolidayInfo(startDate, endDate) {
+    const holidays = [];
+    const year = startDate.getFullYear();
+    
+    // Common US holidays (basic implementation - could be expanded with a proper holiday library)
+    const holidayDates = {
+      [`${year}-01-01`]: 'New Year\'s Day',
+      [`${year}-07-04`]: 'Independence Day',
+      [`${year}-12-25`]: 'Christmas Day',
+      [`${year}-11-28`]: 'Thanksgiving (estimated)',
+      [`${year}-05-27`]: 'Memorial Day (estimated)',
+      [`${year}-09-02`]: 'Labor Day (estimated)',
+      [`${year}-02-14`]: 'Valentine\'s Day',
+      [`${year}-03-17`]: 'St. Patrick\'s Day',
+      [`${year}-10-31`]: 'Halloween',
+      [`${year}-12-31`]: 'New Year\'s Eve'
+    };
+    
+    // Check if any holidays fall within the forecast period
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      if (holidayDates[dateStr]) {
+        holidays.push(`${holidayDates[dateStr]} (${currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })})`);
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return holidays.length > 0 
+      ? `\n## Holidays and Special Events in Forecast Period\n${holidays.map(h => `- ${h}`).join('\n')}\n`
+      : '';
   }
 
   /**
@@ -261,7 +314,7 @@ Focus on accuracy, provide confidence levels, and give practical recommendations
     day: 'numeric' 
   })}
 - Analysis Period: ${lookbackDays} days of historical data
-
+${this._getHolidayInfo(startDate, endDate)}
 ## Historical Summary (Last ${lookbackDays} Days)
 - Total Orders: ${historicalData.totalOrders}
 - Total Revenue: $${historicalData.totalRevenue.toFixed(2)}
@@ -299,7 +352,7 @@ Focus on accuracy, provide confidence levels, and give practical recommendations
       prompt += `- No order type data available\n`;
     }
 
-    prompt += `\nBased on this historical data, please provide a detailed forecast for the specified period. Consider trends, patterns, and any seasonal factors that might affect demand.`;
+    prompt += `\nBased on this historical data, please provide a detailed forecast for the specified period. Consider trends, patterns, seasonal factors, and any holidays or special events that might significantly impact demand patterns.`;
 
     return prompt;
   }
@@ -319,6 +372,48 @@ Focus on accuracy, provide confidence levels, and give practical recommendations
   }
 
   /**
+   * Transform forecast predictions to ensure consistent field names
+   * @private
+   * @param {Array} predictions - Array of prediction objects
+   * @returns {Array} Transformed predictions with consistent field names
+   */
+  _transformPredictions(predictions) {
+    if (!Array.isArray(predictions)) return [];
+    
+    return predictions.map(prediction => {
+      // Create a base prediction object with consistent field names
+      const transformed = {
+        date: prediction.date,
+        day_of_week: prediction.day_of_week,
+        orders: prediction.orders || prediction.predicted_orders || 0,
+        revenue: prediction.revenue || prediction.predicted_revenue || 0,
+        confidence: prediction.confidence || 0,
+        peak_hours: prediction.peak_hours || [],
+        notes: prediction.notes || ''
+      };
+
+      // If day_of_week is missing, calculate it from the date
+      if (!transformed.day_of_week && transformed.date) {
+        try {
+          const date = new Date(transformed.date);
+          if (isNaN(date.getTime())) {
+            transformed.day_of_week = 'N/A';
+          } else {
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            transformed.day_of_week = dayNames[date.getDay()];
+          }
+        } catch (error) {
+          transformed.day_of_week = 'N/A';
+        }
+      } else if (!transformed.day_of_week) {
+        transformed.day_of_week = 'N/A';
+      }
+
+      return transformed;
+    });
+  }
+
+  /**
    * Validate and enhance AI response structure
    * @private
    * @param {Object} aiResponse - Raw AI response
@@ -328,23 +423,30 @@ Focus on accuracy, provide confidence levels, and give practical recommendations
   _enhanceAIResponse(aiResponse, historicalData) {
     const data = aiResponse.data || {};
     
+    // Transform predictions to ensure consistent field names
+    const transformedForecast = this._transformPredictions(data.forecast);
+    
     // Ensure required structure exists
     const enhancedData = {
       confidence: data.confidence || 0.7,
-      forecast: data.forecast || [],
+      forecast: transformedForecast,
       insights: data.insights || [],
       recommendations: data.recommendations || [],
-      summary: data.summary || {
+      summary: {
+        // Start with defaults
         total_predicted_orders: 0,
         total_predicted_revenue: 0,
-        average_confidence: data.confidence || 0.7,
-        growth_trend: 'stable'
+        average_confidence: 0.7,
+        peak_day: 'N/A',
+        growth_trend: 'stable',
+        // Then override with actual data
+        ...(data.summary || {}),
+        // Ensure confidence fallback overrides everything
+        average_confidence: data.summary?.average_confidence || data.confidence || 0.7
       },
-      ...data
+      // Add any additional data fields except summary (which we've already handled)
+      ...Object.fromEntries(Object.entries(data).filter(([key]) => !['forecast', 'insights', 'recommendations', 'summary', 'confidence'].includes(key)))
     };
-
-    // Add data quality warnings if applicable but only for the assessment call in generateDemandForecast
-    // This prevents duplicate warnings during testing
 
     return enhancedData;
   }
@@ -396,6 +498,25 @@ Focus on accuracy, provide confidence levels, and give practical recommendations
         },
         temperature: 0.3, // Lower temperature for more consistent predictions
         maxTokens: 2000
+      });
+
+      // Log AI response details for debugging
+      logger.info('AI report generated', {
+        restaurantId: params.restaurantId,
+        reportType: aiResponse.reportType,
+        confidence: aiResponse.data?.confidence,
+        responseFormat: aiResponse.metadata?.response_format,
+        engine: aiResponse.metadata?.engine,
+        duration: aiResponse.metadata?.duration,
+        forecastItemsGenerated: aiResponse.data?.forecast?.length || 0,
+        insightsGenerated: aiResponse.data?.insights?.length || 0,
+        recommendationsGenerated: aiResponse.data?.recommendations?.length || 0
+      });
+
+      logger.debug('Raw AI response data', {
+        restaurantId: params.restaurantId,
+        aiResponseData: aiResponse.data,
+        aiMetadata: aiResponse.metadata
       });
 
       // Enhance and validate response
