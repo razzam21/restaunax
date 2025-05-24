@@ -12,6 +12,11 @@ import {
   IconButton,
   Tooltip,
   LinearProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
@@ -20,9 +25,17 @@ import {
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
   Schedule as ScheduleIcon,
+  Delete as DeleteIcon,
+  Lock as LockIcon,
+  LockOpen as LockOpenIcon,
 } from '@mui/icons-material';
+import { useState } from 'react';
+import { useAI } from '../../../contexts/AIContext';
 
 const InsightsHistory = ({ insights = [], onViewInsight }) => {
+  const { deleteInsight, lockInsight, unlockInsight, loading } = useAI();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [selectedInsight, setSelectedInsight] = useState(null);
   const getJobIcon = (type) => {
     switch (type) {
       case 'demand_forecast':
@@ -93,6 +106,41 @@ const InsightsHistory = ({ insights = [], onViewInsight }) => {
 
   const isViewable = (insight) => {
     return insight.job?.status === 'completed';
+  };
+
+  const isLocked = (insight) => {
+    return insight.data?.locked || false;
+  };
+
+  const handleDeleteClick = (insight) => {
+    setSelectedInsight(insight);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (selectedInsight) {
+      try {
+        await deleteInsight(selectedInsight.id);
+        setDeleteConfirmOpen(false);
+        setSelectedInsight(null);
+      } catch (error) {
+        // Error is handled in the context
+        console.error('Delete failed:', error);
+      }
+    }
+  };
+
+  const handleLockToggle = async (insight) => {
+    try {
+      if (isLocked(insight)) {
+        await unlockInsight(insight.id);
+      } else {
+        await lockInsight(insight.id);
+      }
+    } catch (error) {
+      // Error is handled in the context
+      console.error('Lock toggle failed:', error);
+    }
   };
 
   if (insights.length === 0) {
@@ -180,25 +228,54 @@ const InsightsHistory = ({ insights = [], onViewInsight }) => {
                 </TableCell>
                 
                 <TableCell align="right">
-                  {isViewable(insight) ? (
-                    <Tooltip title="View Insight">
-                      <IconButton
-                        size="small"
-                        onClick={() => onViewInsight(insight)}
-                        color="primary"
-                      >
-                        <VisibilityIcon />
-                      </IconButton>
-                    </Tooltip>
-                  ) : (
-                    <Tooltip title={`Analysis ${insight.job?.status || 'pending'}`}>
-                      <span>
-                        <IconButton size="small" disabled>
+                  <Box display="flex" alignItems="center" gap={0.5}>
+                    {/* View Button */}
+                    {isViewable(insight) ? (
+                      <Tooltip title="View Insight">
+                        <IconButton
+                          size="small"
+                          onClick={() => onViewInsight(insight)}
+                          color="primary"
+                        >
                           <VisibilityIcon />
                         </IconButton>
-                      </span>
+                      </Tooltip>
+                    ) : (
+                      <Tooltip title={`Analysis ${insight.job?.status || 'pending'}`}>
+                        <span>
+                          <IconButton size="small" disabled>
+                            <VisibilityIcon />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    )}
+
+                    {/* Lock/Unlock Button */}
+                    <Tooltip title={isLocked(insight) ? "Unlock Insight" : "Lock Insight"}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleLockToggle(insight)}
+                        color={isLocked(insight) ? "warning" : "default"}
+                        disabled={loading}
+                      >
+                        {isLocked(insight) ? <LockIcon /> : <LockOpenIcon />}
+                      </IconButton>
                     </Tooltip>
-                  )}
+
+                    {/* Delete Button - only show if not locked */}
+                    {!isLocked(insight) && (
+                      <Tooltip title="Delete Insight">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteClick(insight)}
+                          color="error"
+                          disabled={loading}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </Box>
                 </TableCell>
               </TableRow>
             ))}
@@ -213,6 +290,40 @@ const InsightsHistory = ({ insights = [], onViewInsight }) => {
           </Typography>
         </Box>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Delete Insight</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete the insight &quot;{selectedInsight?.title || 'Untitled'}&quot;?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            This action cannot be undone. The insight will be removed from your history.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setDeleteConfirmOpen(false)}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={loading}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
