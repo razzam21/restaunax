@@ -32,7 +32,7 @@ import MenuOptimizationForm from '../components/features/ai/MenuOptimizationForm
 import InsightsHistory from '../components/features/ai/InsightsHistory';
 import ActiveJobsList from '../components/features/ai/ActiveJobsList';
 import InsightViewer from '../components/features/ai/InsightViewer';
-import Loading from '../components/common/Loading';
+import ForecastViewer from '../components/features/ai/ForecastViewer';
 
 const AIInsightsPage = () => {
   const theme = useTheme();
@@ -62,7 +62,7 @@ const AIInsightsPage = () => {
     }
   }, [shouldShowUpgrade, premiumPromptOpen]);
 
-  const handleTabChange = (event, newValue) => {
+  const handleTabChange = (_, newValue) => {
     setActiveTab(newValue);
   };
 
@@ -284,8 +284,16 @@ const AIInsightsPage = () => {
         feature="ai_insights"
       />
 
-      {/* Insight viewer modal */}
-      {selectedInsight && (
+      {/* Insight viewer modals */}
+      {selectedInsight && selectedInsight.type === 'demand_forecast' && (
+        <ForecastViewer
+          forecast={selectedInsight}
+          open={!!selectedInsight}
+          onClose={() => setSelectedInsight(null)}
+        />
+      )}
+      
+      {selectedInsight && selectedInsight.type !== 'demand_forecast' && (
         <InsightViewer
           insight={selectedInsight}
           open={!!selectedInsight}

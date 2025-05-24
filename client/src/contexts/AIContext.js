@@ -106,9 +106,22 @@ export const AIProvider = ({ children }) => {
       });
       
       if (response.data.success) {
-        const newJob = response.data.job;
-        setActiveJobs(prev => [...prev, newJob]);
-        return newJob;
+        // Create a job-like object for consistency with the UI
+        const forecastResult = {
+          id: `forecast_${Date.now()}`,
+          type: 'demand_forecast',
+          status: 'completed',
+          progress: 100,
+          result: response.data.forecast,
+          requestInfo: response.data.requestInfo,
+          performance: response.data.performance,
+          createdAt: new Date().toISOString()
+        };
+        
+        // Add to insights history since it's completed immediately
+        setInsights(prev => [forecastResult, ...prev]);
+        
+        return forecastResult;
       } else {
         throw new Error(response.data.error || 'Failed to create demand forecast');
       }
@@ -188,7 +201,12 @@ export const AIProvider = ({ children }) => {
       });
       
       if (response.data.success) {
-        return type === 'demand_forecast' ? response.data.forecast : response.data.optimization;
+        // Handle both our immediate response format and stored forecast format
+        if (type === 'demand_forecast') {
+          return response.data.forecast || response.data.data;
+        } else {
+          return response.data.optimization || response.data.data;
+        }
       }
       return null;
     } catch (err) {
