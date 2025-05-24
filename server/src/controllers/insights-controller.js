@@ -17,8 +17,10 @@ const logger = createLogger('insights-controller');
  * Request demand forecast analysis
  */
 const createDemandForecast = asyncHandler(async (req, res) => {
+  const config = require('../config');
+  
   // Early feature flag check
-  if (!aiService.isEnabled()) {
+  if (!config.ai.enabled) {
     return res.status(402).json({
       success: false,
       error: 'AI features are not available with your current plan. Upgrade to Premium to access demand forecasting and AI insights.',
@@ -151,7 +153,8 @@ const createDemandForecast = asyncHandler(async (req, res) => {
  */
 const createMenuOptimization = asyncHandler(async (req, res) => {
   // Early feature flag check
-  if (!aiService.isEnabled()) {
+  const config = require("../config");
+  if (!config.ai.enabled) {
     return res.status(402).json({
       success: false,
       error: 'AI features are not available with your current plan. Upgrade to Premium to access menu optimization and AI insights.',
@@ -272,7 +275,8 @@ const createMenuOptimization = asyncHandler(async (req, res) => {
  */
 const getJobStatus = asyncHandler(async (req, res) => {
   // Early feature flag check
-  if (!aiService.isEnabled()) {
+  const config = require("../config");
+  if (!config.ai.enabled) {
     return res.status(402).json({
       success: false,
       error: 'AI features are not available with your current plan. Upgrade to Premium to access AI insights.',
@@ -358,7 +362,8 @@ const getJobStatus = asyncHandler(async (req, res) => {
  */
 const getDemandForecast = asyncHandler(async (req, res) => {
   // Early feature flag check
-  if (!aiService.isEnabled()) {
+  const config = require("../config");
+  if (!config.ai.enabled) {
     return res.status(402).json({
       success: false,
       error: 'AI features are not available with your current plan. Upgrade to Premium to access AI insights.',
@@ -454,7 +459,8 @@ const getDemandForecast = asyncHandler(async (req, res) => {
  */
 const getMenuOptimization = asyncHandler(async (req, res) => {
   // Early feature flag check
-  if (!aiService.isEnabled()) {
+  const config = require("../config");
+  if (!config.ai.enabled) {
     return res.status(402).json({
       success: false,
       error: 'AI features are not available with your current plan. Upgrade to Premium to access AI insights.',
@@ -549,8 +555,10 @@ const getMenuOptimization = asyncHandler(async (req, res) => {
  * Get list of user's insights history
  */
 const getInsightsHistory = asyncHandler(async (req, res) => {
+  const config = require('../config');
+  
   // Early feature flag check
-  if (!aiService.isEnabled()) {
+  if (!config.ai.enabled) {
     return res.status(402).json({
       success: false,
       error: 'AI features are not available with your current plan. Upgrade to Premium to access AI insights.',

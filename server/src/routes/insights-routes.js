@@ -1,14 +1,18 @@
 const express = require('express');
 const {
-  // createDemandForecast,
   // createMenuOptimization,
   // getJobStatus,
-  // getDemandForecast,
   // getMenuOptimization,
   getInsightsHistory,
   getFeatureStatus,
 } = require('../controllers/insights-controller');
-const { authenticateToken } = require('../middleware/auth');
+const {
+  createDemandForecast,
+  getDemandForecast,
+  getServiceStatus,
+  getDataQuality,
+} = require('../controllers/demand-forecast-controller');
+const { requireAuth } = require('../middleware/auth');
 const { validateInsightRequest } = require('../middleware/validation');
 
 const router = express.Router();
@@ -19,22 +23,32 @@ const router = express.Router();
  */
 
 // Feature status (available to all authenticated users)
-router.get('/feature-status', authenticateToken, getFeatureStatus);
+router.get('/feature-status', requireAuth, getFeatureStatus);
 
 // Job management
-// router.get('/jobs/:jobId', authenticateToken, getJobStatus);
+// router.get('/jobs/:jobId', requireAuth, getJobStatus);
 
 // Demand forecasting
-// router.post('/demand-forecast', 
-//   authenticateToken, 
-//   validateInsightRequest('demand_forecast'), 
-//   createDemandForecast
-// );
+router.post('/demand-forecast', 
+  requireAuth, 
+  createDemandForecast
+);
 
-// router.get('/demand-forecast/:jobId', 
-//   authenticateToken, 
-//   getDemandForecast
-// );
+router.get('/demand-forecast/:id', 
+  requireAuth, 
+  getDemandForecast
+);
+
+// Service status and data quality
+router.get('/demand-forecast-status', 
+  requireAuth, 
+  getServiceStatus
+);
+
+router.get('/demand-forecast/data-quality/:restaurantId', 
+  requireAuth, 
+  getDataQuality
+);
 
 // Menu optimization
 // router.post('/menu-optimization', 
@@ -49,6 +63,6 @@ router.get('/feature-status', authenticateToken, getFeatureStatus);
 // );
 
 // Insights history
-router.get('/history', authenticateToken, getInsightsHistory);
+router.get('/history', requireAuth, getInsightsHistory);
 
 module.exports = router;

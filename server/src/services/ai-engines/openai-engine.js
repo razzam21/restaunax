@@ -108,17 +108,31 @@ class OpenAIEngine extends AIEngineBase {
         userPromptLength: userPrompt.length,
       });
 
+      // Prepare request options
+      const requestOptions = {
+        model: this.config.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature,
+        max_tokens: maxTokens,
+      };
+
+      // Only add JSON response format for supported models
+      const supportsJsonFormat = [
+        'gpt-4-turbo',
+        'gpt-4-turbo-preview', 
+        'gpt-3.5-turbo',
+        'gpt-3.5-turbo-1106'
+      ].some(model => this.config.model.includes(model));
+
+      if (supportsJsonFormat) {
+        requestOptions.response_format = { type: 'json_object' };
+      }
+
       const response = await this.withTimeout(
-        this.client.chat.completions.create({
-          model: this.config.model,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
-          temperature,
-          max_tokens: maxTokens,
-          response_format: { type: 'json_object' },
-        })
+        this.client.chat.completions.create(requestOptions)
       );
 
       const content = response.choices[0]?.message?.content;
