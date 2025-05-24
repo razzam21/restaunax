@@ -2,8 +2,8 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install OpenSSL for Prisma and logrotate for log management
-RUN apk add --no-cache openssl logrotate dcron bash
+# Install OpenSSL for Prisma, logrotate for log management, and Docker CLI for container monitoring
+RUN apk add --no-cache openssl logrotate dcron bash docker-cli
 
 COPY package*.json ./
 RUN npm install

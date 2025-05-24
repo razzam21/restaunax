@@ -2,7 +2,9 @@ const Docker = require('dockerode');
 const si = require('systeminformation');
 const schedule = require('node-schedule');
 const { PrismaClient } = require('@prisma/client');
-const logger = require('../utils/logger');
+const { createLogger } = require('../utils/logger');
+
+const logger = createLogger('system-health-service');
 
 const prisma = new PrismaClient();
 const docker = new Docker();
@@ -11,6 +13,9 @@ class SystemHealthService {
   constructor() {
     this.healthChecks = new Map();
     this.scheduledJobs = new Map();
+    this.dockerSocketWarningLogged = false;
+    this.mockDataCreated = false;
+    this.dockerSocketAvailable = null; // null = unknown, true = available, false = not available
     this.initializeHealthChecks();
   }
 
@@ -44,11 +49,27 @@ class SystemHealthService {
 
       const overallStatus = this.calculateOverallStatus(services);
 
+      // Convert BigInt values to strings for JSON serialization
+      const sanitizedContainers = containers.map(container => ({
+        ...container,
+        memoryUsage: container.memoryUsage ? container.memoryUsage.toString() : null,
+        uptime: container.uptime ? container.uptime.toString() : null,
+      }));
+
+      const sanitizedServices = services.map(service => ({
+        ...service,
+        uptime: service.uptime ? service.uptime.toString() : null,
+      }));
+
       return {
         status: overallStatus,
-        services,
-        containers,
+        services: sanitizedServices,
+        containers: sanitizedContainers,
         features,
+        dockerMonitoring: {
+          available: this.dockerSocketAvailable,
+          usingMockData: this.dockerSocketAvailable === false,
+        },
         lastUpdated: new Date().toISOString(),
       };
     } catch (error) {
@@ -330,6 +351,12 @@ class SystemHealthService {
   async updateContainerStatus() {
     try {
       const containers = await docker.listContainers({ all: true });
+      
+      // Mark Docker socket as available if we get here
+      if (this.dockerSocketAvailable !== true) {
+        this.dockerSocketAvailable = true;
+        logger.info('Docker socket access confirmed - real container monitoring enabled');
+      }
 
       for (const containerInfo of containers) {
         const container = docker.getContainer(containerInfo.Id);
@@ -350,7 +377,8 @@ class SystemHealthService {
             startedAt: inspect.State.StartedAt ? new Date(inspect.State.StartedAt) : null,
             restartCount: inspect.RestartCount || 0,
             cpuUsage: stats ? this.calculateCPUUsage(stats) : null,
-            memoryUsage: stats ? stats.memory_stats.usage : null,
+            memoryUsage: stats && stats.memory_stats && stats.memory_stats.usage 
+              ? BigInt(stats.memory_stats.usage) : null,
             updatedAt: new Date(),
           },
           create: {
@@ -361,12 +389,88 @@ class SystemHealthService {
             startedAt: inspect.State.StartedAt ? new Date(inspect.State.StartedAt) : null,
             restartCount: inspect.RestartCount || 0,
             cpuUsage: stats ? this.calculateCPUUsage(stats) : null,
-            memoryUsage: stats ? stats.memory_stats.usage : null,
+            memoryUsage: stats && stats.memory_stats && stats.memory_stats.usage 
+              ? BigInt(stats.memory_stats.usage) : null,
           },
         });
       }
     } catch (error) {
-      logger.error('Error updating container status:', error);
+      if (error.code === 'ENOENT' || error.message.includes('docker.sock') || error.message.includes('ENOENT')) {
+        // Mark Docker socket as not available
+        if (this.dockerSocketAvailable !== false) {
+          this.dockerSocketAvailable = false;
+          logger.warn('Docker socket not accessible - using mock container data for development environment');
+          this.dockerSocketWarningLogged = true;
+        }
+        // Create mock container data for development
+        await this.createMockContainerData();
+      } else {
+        logger.error('Error updating container status:', error);
+      }
+    }
+  }
+
+  /**
+   * Create mock container data when Docker is not accessible
+   */
+  async createMockContainerData() {
+    try {
+      const mockContainers = [
+        {
+          name: 'restaunax-server-1',
+          status: 'running',
+          image: 'restaunax-server:latest',
+          ports: [{ PrivatePort: 8080, PublicPort: 8081, Type: 'tcp' }],
+          startedAt: new Date(Date.now() - 3600000), // 1 hour ago
+          restartCount: 0,
+          cpuUsage: Math.random() * 50, // Random CPU usage
+          memoryUsage: BigInt(Math.floor(Math.random() * 1000000000)), // Random memory usage
+        },
+        {
+          name: 'restaunax-client-1',
+          status: 'running',
+          image: 'restaunax-client:latest',
+          ports: [{ PrivatePort: 3000, PublicPort: 3000, Type: 'tcp' }],
+          startedAt: new Date(Date.now() - 3600000),
+          restartCount: 0,
+          cpuUsage: Math.random() * 20,
+          memoryUsage: BigInt(Math.floor(Math.random() * 500000000)),
+        },
+        {
+          name: 'restaunax-db-1',
+          status: 'running',
+          image: 'postgres:14-alpine',
+          ports: [{ PrivatePort: 5432, PublicPort: 5432, Type: 'tcp' }],
+          startedAt: new Date(Date.now() - 7200000), // 2 hours ago
+          restartCount: 0,
+          cpuUsage: Math.random() * 15,
+          memoryUsage: BigInt(Math.floor(Math.random() * 300000000)),
+        },
+      ];
+
+      for (const containerData of mockContainers) {
+        await prisma.container.upsert({
+          where: { name: containerData.name },
+          update: {
+            status: containerData.status,
+            image: containerData.image,
+            ports: containerData.ports,
+            startedAt: containerData.startedAt,
+            restartCount: containerData.restartCount,
+            cpuUsage: containerData.cpuUsage,
+            memoryUsage: containerData.memoryUsage,
+            updatedAt: new Date(),
+          },
+          create: containerData,
+        });
+      }
+
+      if (!this.mockDataCreated) {
+        logger.info('Created mock container data for development environment');
+        this.mockDataCreated = true;
+      }
+    } catch (error) {
+      logger.error('Error creating mock container data:', error);
     }
   }
 
@@ -539,4 +643,5 @@ class SystemHealthService {
   }
 }
 
-module.exports = new SystemHealthService();
+// Export the class, not an instance, to avoid initialization issues
+module.exports = SystemHealthService;

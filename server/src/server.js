@@ -32,6 +32,8 @@ prisma.$connect()
     initializeWebSocketServer(server);
     console.log('WebSocket server initialized on /ws/dashboard');
     
+    // System health monitoring is now initialized on-demand in controllers
+    
     // Initialize job queue for AI processing (non-blocking)
     setTimeout(async () => {
       try {

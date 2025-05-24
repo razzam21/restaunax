@@ -25,6 +25,7 @@ services:
       - ./server:/app
       - /app/node_modules
       - server_logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # Enable Docker API access
     depends_on:
       - db
       - redis

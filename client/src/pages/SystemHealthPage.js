@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -34,9 +34,10 @@ import {
   Memory as MemoryIcon,
   Storage as StorageIcon,
   Speed as CpuIcon,
+  Cloud as LiveIcon,
+  CloudOff as MockIcon,
 } from '@mui/icons-material';
-import { AuthContext } from '../contexts/AuthContext';
-import { ThemeContext } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 
 function TabPanel(props) {
@@ -60,8 +61,7 @@ function TabPanel(props) {
 }
 
 function SystemHealthPage() {
-  const { user } = useContext(AuthContext);
-  const { theme } = useContext(ThemeContext);
+  const { user } = useAuth();
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -218,7 +218,7 @@ function SystemHealthPage() {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="warning">
-          You don't have permission to view system health. This feature is only available to owners and managers.
+          You don&apos;t have permission to view system health. This feature is only available to owners and managers.
         </Alert>
       </Box>
     );
@@ -266,15 +266,33 @@ function SystemHealthPage() {
             title="Overall System Status"
             avatar={getStatusIcon(systemHealth.status)}
             action={
-              <Chip
-                label={systemHealth.status?.toUpperCase() || 'UNKNOWN'}
-                color={
-                  systemHealth.status === 'healthy' ? 'success' :
-                  systemHealth.status === 'degraded' ? 'warning' :
-                  systemHealth.status === 'unhealthy' ? 'error' : 'default'
-                }
-                variant="outlined"
-              />
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Chip
+                  label={systemHealth.status?.toUpperCase() || 'UNKNOWN'}
+                  color={
+                    systemHealth.status === 'healthy' ? 'success' :
+                    systemHealth.status === 'degraded' ? 'warning' :
+                    systemHealth.status === 'unhealthy' ? 'error' : 'default'
+                  }
+                  variant="outlined"
+                />
+                {systemHealth.dockerMonitoring && (
+                  <Tooltip 
+                    title={systemHealth.dockerMonitoring.usingMockData 
+                      ? "Container monitoring using mock data (development mode)" 
+                      : "Container monitoring using live Docker data"
+                    }
+                  >
+                    <Chip
+                      icon={systemHealth.dockerMonitoring.usingMockData ? <MockIcon /> : <LiveIcon />}
+                      label={systemHealth.dockerMonitoring.usingMockData ? "Mock Data" : "Live Data"}
+                      color={systemHealth.dockerMonitoring.usingMockData ? "warning" : "info"}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </Tooltip>
+                )}
+              </Box>
             }
           />
         </Card>
@@ -347,6 +365,23 @@ function SystemHealthPage() {
 
       {/* Containers Tab */}
       <TabPanel value={tabValue} index={1}>
+        {systemHealth?.dockerMonitoring && (
+          <Alert 
+            severity={systemHealth.dockerMonitoring.usingMockData ? "warning" : "info"}
+            sx={{ mb: 2 }}
+          >
+            {systemHealth.dockerMonitoring.usingMockData ? (
+              <>
+                <strong>Development Mode:</strong> Docker socket not accessible. 
+                Container data shown below is mock data for development purposes.
+              </>
+            ) : (
+              <>
+                <strong>Live Monitoring:</strong> Real-time container data from Docker daemon.
+              </>
+            )}
+          </Alert>
+        )}
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
@@ -354,8 +389,22 @@ function SystemHealthPage() {
                 <TableCell>Name</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Image</TableCell>
-                <TableCell>CPU Usage</TableCell>
-                <TableCell>Memory Usage</TableCell>
+                <TableCell>
+                  CPU Usage
+                  {systemHealth?.dockerMonitoring?.usingMockData && (
+                    <Typography variant="caption" sx={{ display: 'block', color: 'warning.main' }}>
+                      (mock)
+                    </Typography>
+                  )}
+                </TableCell>
+                <TableCell>
+                  Memory Usage
+                  {systemHealth?.dockerMonitoring?.usingMockData && (
+                    <Typography variant="caption" sx={{ display: 'block', color: 'warning.main' }}>
+                      (mock)
+                    </Typography>
+                  )}
+                </TableCell>
                 <TableCell>Restart Count</TableCell>
                 <TableCell>Started At</TableCell>
               </TableRow>

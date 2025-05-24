@@ -1,5 +1,14 @@
 const asyncHandler = require('express-async-handler');
-const systemHealthService = require('../services/system-health-service');
+const SystemHealthService = require('../services/system-health-service');
+
+// Lazy initialization of the service
+let systemHealthService = null;
+const getSystemHealthService = () => {
+  if (!systemHealthService) {
+    systemHealthService = new SystemHealthService();
+  }
+  return systemHealthService;
+};
 const { createLogger } = require('../utils/logger');
 const Joi = require('joi');
 
@@ -12,7 +21,7 @@ const logger = createLogger('system-health-controller');
  */
 const getSystemHealth = asyncHandler(async (req, res) => {
   try {
-    const health = await systemHealthService.getSystemHealth();
+    const health = await getSystemHealthService().getSystemHealth();
     
     res.json({
       success: true,
@@ -40,7 +49,7 @@ const getSystemHealth = asyncHandler(async (req, res) => {
  */
 const getServiceHealth = asyncHandler(async (req, res) => {
   try {
-    const services = await systemHealthService.getServiceHealth();
+    const services = await getSystemHealthService().getServiceHealth();
     
     res.json({
       success: true,
@@ -68,7 +77,7 @@ const getServiceHealth = asyncHandler(async (req, res) => {
  */
 const getContainers = asyncHandler(async (req, res) => {
   try {
-    const containers = await systemHealthService.getContainerHealth();
+    const containers = await getSystemHealthService().getContainerHealth();
     
     res.json({
       success: true,
@@ -96,7 +105,7 @@ const getContainers = asyncHandler(async (req, res) => {
  */
 const getFeatures = asyncHandler(async (req, res) => {
   try {
-    const features = await systemHealthService.getFeatureFlags();
+    const features = await getSystemHealthService().getFeatureFlags();
     
     res.json({
       success: true,
@@ -150,14 +159,14 @@ const updateFeature = asyncHandler(async (req, res) => {
       });
     }
 
-    const updatedFeature = await systemHealthService.updateFeatureFlag(
+    const updatedFeature = await getSystemHealthService().updateFeatureFlag(
       feature.trim(),
       enabled,
       config
     );
 
     // Log the action
-    await systemHealthService.logSystemEvent(
+    await getSystemHealthService().logSystemEvent(
       'info',
       `Feature flag '${feature}' ${enabled ? 'enabled' : 'disabled'}`,
       'system',
@@ -211,7 +220,7 @@ const getSystemLogs = asyncHandler(async (req, res) => {
       });
     }
 
-    const logs = await systemHealthService.getSystemLogs(value);
+    const logs = await getSystemHealthService().getSystemLogs(value);
     
     res.json({
       success: true,
@@ -239,7 +248,7 @@ const getSystemLogs = asyncHandler(async (req, res) => {
  */
 const getSystemMetrics = asyncHandler(async (req, res) => {
   try {
-    const metrics = await systemHealthService.getSystemMetrics();
+    const metrics = await getSystemHealthService().getSystemMetrics();
     
     res.json({
       success: true,
@@ -268,10 +277,10 @@ const getSystemMetrics = asyncHandler(async (req, res) => {
 const triggerHealthCheck = asyncHandler(async (req, res) => {
   try {
     // Trigger manual health check
-    await systemHealthService.performHealthChecks();
+    await getSystemHealthService().performHealthChecks();
     
     // Log the action
-    await systemHealthService.logSystemEvent(
+    await getSystemHealthService().logSystemEvent(
       'info',
       'Manual health check triggered',
       'system',
@@ -306,10 +315,10 @@ const triggerHealthCheck = asyncHandler(async (req, res) => {
 const updateContainerStatus = asyncHandler(async (req, res) => {
   try {
     // Trigger manual container status update
-    await systemHealthService.updateContainerStatus();
+    await getSystemHealthService().updateContainerStatus();
     
     // Log the action
-    await systemHealthService.logSystemEvent(
+    await getSystemHealthService().logSystemEvent(
       'info',
       'Manual container status update triggered',
       'system',

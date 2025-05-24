@@ -4,7 +4,7 @@ const menuRoutes = require('./menu-routes');
 const authRoutes = require('./auth-routes');
 const restaurantRoutes = require('./restaurant-routes');
 const reportRoutes = require('./report-routes');
-const insightsRoutes = require('./insights-routes');
+// const insightsRoutes = require('./insights-routes');
 const systemHealthRoutes = require('./system-health-routes');
 const { requireAuth } = require('../middleware/auth');
 
@@ -27,7 +27,7 @@ router.use('/reports', requireAuth, reportRoutes);
 router.use('/dashboard', requireAuth, reportRoutes);
 
 // AI Insights routes (MVP 6)
-router.use('/insights', requireAuth, insightsRoutes);
+// router.use('/insights', requireAuth, insightsRoutes);
 
 // System Health Monitoring routes (MVP 7) - Owner only
 router.use('/system', systemHealthRoutes);
