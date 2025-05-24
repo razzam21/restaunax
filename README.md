@@ -85,9 +85,9 @@ This project includes optimized Docker configuration with:
 - **Health checks** for reliable service monitoring
 
 For detailed information, see:
-- [`DOCKER_GUIDE.md`](DOCKER_GUIDE.md) - Comprehensive optimization guide
-- [`DOCKER_OPTIMIZATION_SUMMARY.md`](DOCKER_OPTIMIZATION_SUMMARY.md) - Quick reference
-- [`REACT_DOCKER_TROUBLESHOOTING.md`](REACT_DOCKER_TROUBLESHOOTING.md) - Frontend-specific issues
+- [`docs/docker/DOCKER_GUIDE.md`](docs/docker/DOCKER_GUIDE.md) - Comprehensive optimization guide
+- [`docs/docker/DOCKER_OPTIMIZATION_SUMMARY.md`](docs/docker/DOCKER_OPTIMIZATION_SUMMARY.md) - Quick reference
+- [`docs/docker/REACT_DOCKER_TROUBLESHOOTING.md`](docs/docker/REACT_DOCKER_TROUBLESHOOTING.md) - Frontend-specific issues
 
 ### Environment Configuration
 
@@ -304,7 +304,7 @@ If you can't access http://localhost:3000:
 2. Ensure HOST=0.0.0.0 is set in environment variables
 3. Verify container logs: `docker compose logs client --follow`
 
-See [`REACT_DOCKER_TROUBLESHOOTING.md`](REACT_DOCKER_TROUBLESHOOTING.md) for detailed solutions.
+See [`docs/docker/REACT_DOCKER_TROUBLESHOOTING.md`](docs/docker/REACT_DOCKER_TROUBLESHOOTING.md) for detailed solutions.
 
 #### Slow Build Times
 Use Docker Bake for faster builds:
@@ -330,7 +330,16 @@ docker compose ps
 docker compose logs [service-name]
 ```
 
-For comprehensive troubleshooting, see [`DOCKER_GUIDE.md`](DOCKER_GUIDE.md).
+For comprehensive troubleshooting, see [`docs/docker/DOCKER_GUIDE.md`](docs/docker/DOCKER_GUIDE.md).
+
+## 📚 Documentation
+
+Comprehensive documentation is available in the [`docs/`](docs/) directory:
+
+- **[Docker & Deployment](docs/docker/)** - Container optimization and troubleshooting
+- **[MVP Implementation](docs/mvp/)** - Feature development guides  
+- **[Technical Guides](docs/)** - Authentication, logging, error handling
+- **[Full Documentation Index](docs/README.md)** - Complete documentation overview
 
 ## Future Enhancements
 
