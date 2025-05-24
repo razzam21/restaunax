@@ -7,9 +7,11 @@ RUN apk update && apk upgrade && \
     apk add --no-cache openssl dumb-init && \
     rm -rf /var/cache/apk/*
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+# Create non-root user with host user's UID/GID for proper file permissions
+ARG USER_ID=1001
+ARG GROUP_ID=1001
+RUN addgroup -g ${GROUP_ID} -S nodejs && \
+    adduser -S nodejs -u ${USER_ID} -G nodejs
 
 WORKDIR /app
 
@@ -30,6 +32,11 @@ RUN apk add --no-cache bash docker-cli
 
 # Copy source code
 COPY --chown=nodejs:nodejs . .
+
+# Create logs directory with proper permissions
+RUN mkdir -p /app/logs && \
+    chown -R nodejs:nodejs /app/logs && \
+    chmod -R 755 /app/logs
 
 # Set Prisma binary target for Alpine
 ENV PRISMA_BINARY_TARGET=linux-musl

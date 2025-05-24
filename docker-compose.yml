@@ -50,6 +50,9 @@ services:
       context: ./server
       dockerfile: ../docker/server/Dockerfile
       target: development
+      args:
+        USER_ID: ${UID:-1001}
+        GROUP_ID: ${GID:-1001}
     ports:
       - "${SERVER_EXTERNAL_PORT:-8081}:${SERVER_INTERNAL_PORT:-8080}"
     volumes:
