@@ -1,6 +1,13 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import ForecastViewer from './ForecastViewer';
+import { useAI } from '../../../contexts/AIContext';
+
+// Mock the AI context
+jest.mock('../../../contexts/AIContext', () => ({
+  useAI: jest.fn()
+}));
 
 const theme = createTheme();
 
@@ -17,7 +24,7 @@ describe('ForecastViewer', () => {
     status: 'completed',
     result: {
       data: {
-        predictions: [
+        forecast: [
           {
             date: '2024-02-01',
             orders: 25,
@@ -41,26 +48,28 @@ describe('ForecastViewer', () => {
           }
         ],
         summary: {
-          totalPredictedOrders: 85,
-          totalPredictedRevenue: 1531.75,
-          averageConfidence: 0.85,
-          trendDirection: 'increasing',
-          peakDay: 'Saturday'
+          total_predicted_orders: 85,
+          total_predicted_revenue: 1531.75,
+          confidence: 0.85,
+          peak_day: 'Saturday'
         },
         trends: {
           expectedGrowth: 12,
           seasonalFactors: ['weekend_boost', 'lunch_rush'],
           riskFactors: ['weather_dependent']
         },
+        insights: [
+          'Weekend shows highest demand',
+          'Friday and Saturday are peak days'
+        ],
         recommendations: [
           'Increase inventory for weekend rush',
           'Consider lunch specials to boost revenue',
           'Staff additional servers for Saturday evening'
         ]
       },
-      metadata: {
-        generation_duration: 1500,
-        data_quality_score: 0.78
+      historicalContext: {
+        dataQuality: 'medium'
       }
     },
     requestInfo: {
@@ -83,8 +92,21 @@ describe('ForecastViewer', () => {
     onClose: jest.fn()
   };
 
+  // Mock AI context functions
+  const mockDeleteInsight = jest.fn();
+  const mockLockInsight = jest.fn();
+  const mockUnlockInsight = jest.fn();
+
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Setup default mock implementation
+    useAI.mockReturnValue({
+      deleteInsight: mockDeleteInsight,
+      lockInsight: mockLockInsight,
+      unlockInsight: mockUnlockInsight,
+      loading: false
+    });
   });
 
   describe('Basic Rendering', () => {
@@ -445,6 +467,137 @@ describe('ForecastViewer', () => {
 
       const dialog = screen.getByRole('dialog');
       expect(dialog).toHaveStyle({ maxWidth: 'lg' });
+    });
+  });
+
+  describe('Delete and Lock Functionality', () => {
+    it('should show lock and delete buttons for unlocked forecast', () => {
+      render(
+        <MockWrapper>
+          <ForecastViewer {...defaultProps} />
+        </MockWrapper>
+      );
+
+      expect(screen.getByLabelText('Lock Insight')).toBeInTheDocument();
+      expect(screen.getByLabelText('Delete Insight')).toBeInTheDocument();
+    });
+
+    it('should show unlock button and hide delete button for locked forecast', () => {
+      const lockedForecast = {
+        ...mockForecastData,
+        data: { locked: true }
+      };
+
+      render(
+        <MockWrapper>
+          <ForecastViewer {...defaultProps} forecast={lockedForecast} />
+        </MockWrapper>
+      );
+
+      expect(screen.getByLabelText('Unlock Insight')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Delete Insight')).not.toBeInTheDocument();
+      expect(screen.getByText('Locked')).toBeInTheDocument();
+    });
+
+    it('should call lockInsight when lock button is clicked', async () => {
+      render(
+        <MockWrapper>
+          <ForecastViewer {...defaultProps} />
+        </MockWrapper>
+      );
+
+      fireEvent.click(screen.getByLabelText('Lock Insight'));
+      
+      await waitFor(() => {
+        expect(mockLockInsight).toHaveBeenCalledWith(mockForecastData.id);
+      });
+    });
+
+    it('should call unlockInsight when unlock button is clicked', async () => {
+      const lockedForecast = {
+        ...mockForecastData,
+        data: { locked: true }
+      };
+
+      render(
+        <MockWrapper>
+          <ForecastViewer {...defaultProps} forecast={lockedForecast} />
+        </MockWrapper>
+      );
+
+      fireEvent.click(screen.getByLabelText('Unlock Insight'));
+      
+      await waitFor(() => {
+        expect(mockUnlockInsight).toHaveBeenCalledWith(mockForecastData.id);
+      });
+    });
+
+    it('should open delete confirmation dialog when delete button is clicked', () => {
+      render(
+        <MockWrapper>
+          <ForecastViewer {...defaultProps} />
+        </MockWrapper>
+      );
+
+      fireEvent.click(screen.getByLabelText('Delete Insight'));
+      
+      expect(screen.getByText('Delete Forecast')).toBeInTheDocument();
+      expect(screen.getByText('Are you sure you want to delete this demand forecast? This action cannot be undone.')).toBeInTheDocument();
+    });
+
+    it('should close delete confirmation dialog when cancel is clicked', () => {
+      render(
+        <MockWrapper>
+          <ForecastViewer {...defaultProps} />
+        </MockWrapper>
+      );
+
+      // Open delete dialog
+      fireEvent.click(screen.getByLabelText('Delete Insight'));
+      expect(screen.getByText('Delete Forecast')).toBeInTheDocument();
+
+      // Cancel deletion
+      fireEvent.click(screen.getByText('Cancel'));
+      expect(screen.queryByText('Delete Forecast')).not.toBeInTheDocument();
+    });
+
+    it('should call deleteInsight and close dialog when delete is confirmed', async () => {
+      const mockOnClose = jest.fn();
+      
+      render(
+        <MockWrapper>
+          <ForecastViewer {...defaultProps} onClose={mockOnClose} />
+        </MockWrapper>
+      );
+
+      // Open delete dialog
+      fireEvent.click(screen.getByLabelText('Delete Insight'));
+      
+      // Confirm deletion
+      fireEvent.click(screen.getByRole('button', { name: /delete/i }));
+      
+      await waitFor(() => {
+        expect(mockDeleteInsight).toHaveBeenCalledWith(mockForecastData.id);
+        expect(mockOnClose).toHaveBeenCalled();
+      });
+    });
+
+    it('should disable buttons when loading', () => {
+      useAI.mockReturnValue({
+        deleteInsight: mockDeleteInsight,
+        lockInsight: mockLockInsight,
+        unlockInsight: mockUnlockInsight,
+        loading: true
+      });
+
+      render(
+        <MockWrapper>
+          <ForecastViewer {...defaultProps} />
+        </MockWrapper>
+      );
+
+      expect(screen.getByLabelText('Lock Insight')).toBeDisabled();
+      expect(screen.getByLabelText('Delete Insight')).toBeDisabled();
     });
   });
 });

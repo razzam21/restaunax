@@ -19,6 +19,8 @@ import {
   Paper,
   Divider,
   Alert,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -26,14 +28,55 @@ import {
   CalendarToday as CalendarIcon,
   Assessment as AssessmentIcon,
   Warning as WarningIcon,
+  Delete as DeleteIcon,
+  Lock as LockIcon,
+  LockOpen as LockOpenIcon,
 } from '@mui/icons-material';
+import { useState } from 'react';
+import { useAI } from '../../../contexts/AIContext';
 
 const ForecastViewer = ({ forecast, open, onClose }) => {
+  const { deleteInsight, lockInsight, unlockInsight, loading } = useAI();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  
   if (!forecast || !open) return null;
 
-  const { result, requestInfo, performance, createdAt } = forecast;
+  // Helper function to check if insight is locked
+  const isLocked = (insight) => {
+    return insight?.data?.locked === true;
+  };
+
+  // Handle lock/unlock toggle
+  const handleLockToggle = async () => {
+    try {
+      if (isLocked(forecast)) {
+        await unlockInsight(forecast.id);
+      } else {
+        await lockInsight(forecast.id);
+      }
+    } catch (error) {
+      console.error('Error toggling lock:', error);
+    }
+  };
+
+  // Handle delete with confirmation
+  const handleDelete = async () => {
+    try {
+      await deleteInsight(forecast.id);
+      setDeleteConfirmOpen(false);
+      onClose(); // Close the dialog after deletion
+    } catch (error) {
+      console.error('Error deleting insight:', error);
+      setDeleteConfirmOpen(false);
+    }
+  };
+
+  const { result, requestInfo, performance, createdAt } = forecast || {};
   const { data } = result || {};
-  const { predictions = [], summary = {}, trends = {}, recommendations = [] } = data || {};
+  const { forecast: predictions = [], summary = {}, insights = [], recommendations = [], trends = {} } = data || {};
+  
+  // Safely get confidence from multiple possible locations
+  const confidence = data?.confidence || summary?.confidence || summary?.average_confidence || 0;
 
   // Format currency values
   const formatCurrency = (amount) => {
@@ -86,8 +129,9 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
       .join(' ');
   };
 
-  // Check if data quality is low
-  const hasLowDataQuality = result?.metadata?.data_quality_score < 0.5;
+  // Check if data quality is low  
+  const dataQuality = result?.historicalContext?.dataQuality || 'medium';
+  const hasLowDataQuality = dataQuality === 'low';
 
   return (
     <Dialog
@@ -113,14 +157,54 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
                 color="primary"
                 variant="outlined"
               />
-              {summary.averageConfidence && (
+              {confidence > 0 && (
                 <Chip 
-                  label={`${formatConfidence(summary.averageConfidence)} confidence`}
+                  label={`${formatConfidence(confidence)} confidence`}
                   size="small" 
-                  color={getConfidenceColor(summary.averageConfidence)}
+                  color={getConfidenceColor(confidence)}
+                />
+              )}
+              {isLocked(forecast) && (
+                <Chip 
+                  label="Locked" 
+                  size="small" 
+                  color="warning"
+                  icon={<LockIcon />}
                 />
               )}
             </Box>
+          </Box>
+          <Box display="flex" gap={1}>
+            {/* Lock/Unlock Button */}
+            <Tooltip title={isLocked(forecast) ? "Unlock Insight" : "Lock Insight"}>
+              <IconButton
+                onClick={handleLockToggle}
+                disabled={loading}
+                color={isLocked(forecast) ? "warning" : "default"}
+              >
+                {isLocked(forecast) ? <LockIcon /> : <LockOpenIcon />}
+              </IconButton>
+            </Tooltip>
+
+            {/* Delete Button - hidden when locked */}
+            {!isLocked(forecast) && (
+              <Tooltip title="Delete Insight">
+                <IconButton
+                  onClick={() => setDeleteConfirmOpen(true)}
+                  disabled={loading}
+                  color="error"
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {/* Close Button */}
+            <Tooltip title="Close">
+              <IconButton onClick={onClose}>
+                <CloseIcon />
+              </IconButton>
+            </Tooltip>
           </Box>
         </Box>
       </DialogTitle>
@@ -129,8 +213,7 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
         {/* Data Quality Warning */}
         {hasLowDataQuality && (
           <Alert severity="warning" icon={<WarningIcon />} sx={{ mb: 3 }}>
-            This forecast is based on low data quality (
-            {Math.round((result?.metadata?.data_quality_score || 0) * 100)}%). 
+            This forecast is based on low data quality. 
             Results may be less reliable. Consider collecting more historical data.
           </Alert>
         )}
@@ -147,7 +230,7 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
                 <Card variant="outlined">
                   <CardContent sx={{ textAlign: 'center' }}>
                     <Typography variant="h4" color="primary">
-                      {summary.totalPredictedOrders || 0}
+                      {summary.total_predicted_orders || 0}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Total Orders
@@ -159,7 +242,7 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
                 <Card variant="outlined">
                   <CardContent sx={{ textAlign: 'center' }}>
                     <Typography variant="h4" color="success.main">
-                      {formatCurrency(summary.totalPredictedRevenue)}
+                      {formatCurrency(summary.total_predicted_revenue)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Total Revenue
@@ -171,7 +254,7 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
                 <Card variant="outlined">
                   <CardContent sx={{ textAlign: 'center' }}>
                     <Typography variant="h4" color="info.main">
-                      {formatConfidence(summary.averageConfidence)}
+                      {formatConfidence(confidence)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Avg Confidence
@@ -183,7 +266,7 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
                 <Card variant="outlined">
                   <CardContent sx={{ textAlign: 'center' }}>
                     <Typography variant="h4" color="warning.main">
-                      {summary.peakDay || 'N/A'}
+                      {summary.peak_day || 'N/A'}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Peak Day
@@ -278,9 +361,9 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
                       <TableCell align="right">{formatCurrency(prediction.revenue)}</TableCell>
                       <TableCell align="center">
                         <Chip
-                          label={formatConfidence(prediction.confidence)}
+                          label={formatConfidence(prediction.confidence || 0)}
                           size="small"
-                          color={getConfidenceColor(prediction.confidence)}
+                          color={getConfidenceColor(prediction.confidence || 0)}
                         />
                       </TableCell>
                     </TableRow>
@@ -294,6 +377,20 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
             </Typography>
           )}
         </Box>
+
+        {/* Insights */}
+        {insights.length > 0 && (
+          <Box mb={4}>
+            <Typography variant="h6" gutterBottom>Key Insights</Typography>
+            <Box>
+              {insights.map((insight, index) => (
+                <Typography key={index} variant="body2" paragraph sx={{ pl: 2 }}>
+                  • {insight}
+                </Typography>
+              ))}
+            </Box>
+          </Box>
+        )}
 
         {/* Recommendations */}
         <Box mb={4}>
@@ -341,7 +438,7 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <Typography variant="body2" color="text.secondary">
-                <strong>Data Quality:</strong> {Math.round((result?.metadata?.data_quality_score || 0) * 100)}%
+                <strong>Data Quality:</strong> {dataQuality || 'N/A'}
               </Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -358,6 +455,43 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
           Close
         </Button>
       </DialogActions>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={2}>
+            <DeleteIcon color="error" />
+            <Typography variant="h6">Delete Forecast</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this demand forecast? This action cannot be undone.
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            Generated on: {formatDate(createdAt)}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDelete}
+            color="error" 
+            variant="contained"
+            disabled={loading}
+            startIcon={<DeleteIcon />}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 };
