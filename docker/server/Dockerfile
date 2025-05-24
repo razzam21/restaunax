@@ -1,48 +1,73 @@
-FROM node:18-alpine
+# Multi-stage build for optimized Node.js backend
+# Stage 1: Base image with dependencies
+FROM node:18-alpine AS base
+
+# Install security updates and required packages
+RUN apk update && apk upgrade && \
+    apk add --no-cache openssl dumb-init && \
+    rm -rf /var/cache/apk/*
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
 
 WORKDIR /app
 
-# Install OpenSSL for Prisma, logrotate for log management, and Docker CLI for container monitoring
-RUN apk add --no-cache openssl logrotate dcron bash docker-cli
-
+# Copy package files
 COPY package*.json ./
-RUN npm install
+
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Stage 2: Development build
+FROM base AS development
+
+# Install all dependencies including dev dependencies
+RUN npm ci && npm cache clean --force
+
+# Install additional tools for development
+RUN apk add --no-cache bash docker-cli
+
+# Copy source code
+COPY --chown=nodejs:nodejs . .
 
 # Set Prisma binary target for Alpine
 ENV PRISMA_BINARY_TARGET=linux-musl
 
-COPY . .
-
-# Create logs directory and add .gitkeep file
-RUN mkdir -p /app/logs && \
-    touch /app/logs/.gitkeep && \
-    chmod 755 /app/logs && \
-    chmod 644 /app/logs/.gitkeep
-
 # Generate Prisma client
 RUN npx prisma generate
 
-# Setup logrotate configuration
-RUN echo '#!/bin/sh\n/usr/sbin/logrotate /etc/logrotate.d/restaunax' > /etc/periodic/daily/logrotate-restaunax && \
-    chmod +x /etc/periodic/daily/logrotate-restaunax
-
-# Create logrotate configuration
-RUN echo '/app/logs/*.log {\n\
-    daily\n\
-    rotate 7\n\
-    maxsize 10M\n\
-    missingok\n\
-    notifempty\n\
-    compress\n\
-    delaycompress\n\
-    create 644 node node\n\
-    sharedscripts\n\
-    postrotate\n\
-        killall -USR1 node 2>/dev/null || true\n\
-    endscript\n\
-}' > /etc/logrotate.d/restaunax
+# Switch to non-root user
+USER nodejs
 
 EXPOSE 8080
 
-# Start crond and then the application
-CMD ["sh", "-c", "crond -L /dev/stdout && npm run dev"]
+# Add health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1
+
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["npm", "run", "dev"]
+
+# Stage 3: Production build
+FROM base AS production
+
+# Copy built application
+COPY --from=development --chown=nodejs:nodejs /app /app
+
+# Remove development dependencies
+RUN npm prune --production && npm cache clean --force
+
+# Switch to non-root user
+USER nodejs
+
+EXPOSE 8080
+
+# Add health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1
+
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["npm", "start"]

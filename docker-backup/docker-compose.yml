@@ -1,0 +1,58 @@
+services:
+  client:
+    build:
+      context: ./client
+      dockerfile: ../docker/client/Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - server
+    env_file:
+      - ./client/.env
+    environment:
+      - REACT_APP_API_URL=http://localhost:8081/api
+
+  server:
+    build:
+      context: ./server
+      dockerfile: ../docker/server/Dockerfile
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+      - server_logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # Enable Docker API access
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - ./server/.env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://redis:6379
+
+  db:
+    image: postgres:14-alpine
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - ./.env
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+volumes:
+  postgres_data:
+  redis_data:
+  server_logs:

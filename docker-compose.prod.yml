@@ -1,0 +1,90 @@
+# Production Docker Compose configuration
+# Override development settings for production deployment
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+  database:
+    driver: bridge
+    internal: true
+
+services:
+  client:
+    build:
+      context: ./client
+      dockerfile: ../docker/client/Dockerfile
+      target: production
+    # Remove development volume mounts
+    volumes: []
+    environment:
+      - NODE_ENV=production
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    restart: always
+
+  server:
+    build:
+      context: ./server
+      dockerfile: ../docker/server/Dockerfile
+      target: production
+    # Remove development volume mounts except logs
+    volumes:
+      - server_logs:/app/logs
+    environment:
+      - NODE_ENV=production
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.75'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    restart: always
+
+  db:
+    # Production-specific database configuration
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    restart: always
+    # Add backup configuration for production
+    labels:
+      - "backup.enable=true"
+      - "backup.schedule=0 2 * * *"
+
+  redis:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+    restart: always
+
+  # Enable nginx for production
+  nginx:
+    profiles: []  # Remove profile restriction
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: always

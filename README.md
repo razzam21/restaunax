@@ -65,12 +65,29 @@ cp client/.env.example client/.env
 3. Start the application with Docker Compose:
 
 ```bash
-docker-compose up
+# Standard startup
+docker compose up
+
+# Optimized build with Docker Bake (recommended)
+COMPOSE_BAKE=true docker compose up --build
 ```
 
 The application will be available at:
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8081
+
+### Docker Optimization
+
+This project includes optimized Docker configuration with:
+- **Multi-stage builds** for smaller images and better caching
+- **Docker Bake** support for parallel builds (60% faster)
+- **Security hardening** with non-root users and resource limits
+- **Health checks** for reliable service monitoring
+
+For detailed information, see:
+- [`DOCKER_GUIDE.md`](DOCKER_GUIDE.md) - Comprehensive optimization guide
+- [`DOCKER_OPTIMIZATION_SUMMARY.md`](DOCKER_OPTIMIZATION_SUMMARY.md) - Quick reference
+- [`REACT_DOCKER_TROUBLESHOOTING.md`](REACT_DOCKER_TROUBLESHOOTING.md) - Frontend-specific issues
 
 ### Environment Configuration
 
@@ -276,6 +293,44 @@ The application implements several security measures:
 - HTTP-only cookies for refresh tokens
 - Role-based access control
 - Rate limiting for login attempts
+
+## Troubleshooting
+
+### Common Issues
+
+#### Frontend Not Accessible (Connection Reset)
+If you can't access http://localhost:3000:
+1. Check if React dev server has sufficient memory (2GB required)
+2. Ensure HOST=0.0.0.0 is set in environment variables
+3. Verify container logs: `docker compose logs client --follow`
+
+See [`REACT_DOCKER_TROUBLESHOOTING.md`](REACT_DOCKER_TROUBLESHOOTING.md) for detailed solutions.
+
+#### Slow Build Times
+Use Docker Bake for faster builds:
+```bash
+COMPOSE_BAKE=true docker compose build
+```
+
+#### Database Connection Issues
+```bash
+# Restart database service
+docker compose restart db
+
+# Check database logs
+docker compose logs db
+```
+
+#### Health Check Failures
+```bash
+# Check service status
+docker compose ps
+
+# View service logs
+docker compose logs [service-name]
+```
+
+For comprehensive troubleshooting, see [`DOCKER_GUIDE.md`](DOCKER_GUIDE.md).
 
 ## Future Enhancements
 

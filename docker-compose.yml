@@ -1,24 +1,54 @@
+# Docker Compose configuration for Restaunax (development)
+
+# Define custom networks for better security
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+  database:
+    driver: bridge
+    internal: true  # Database network is internal only
+
 services:
   client:
     build:
       context: ./client
       dockerfile: ../docker/client/Dockerfile
+      target: development
     ports:
       - "3000:3000"
     volumes:
       - ./client:/app
       - /app/node_modules
+    networks:
+      - frontend
+      - backend
     depends_on:
-      - server
+      server:
+        condition: service_healthy
     env_file:
       - ./client/.env
     environment:
       - REACT_APP_API_URL=http://localhost:8081/api
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
+      - HOST=0.0.0.0
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
 
   server:
     build:
       context: ./server
       dockerfile: ../docker/server/Dockerfile
+      target: development
     ports:
       - "8081:8080"
     volumes:
@@ -26,14 +56,29 @@ services:
       - /app/node_modules
       - server_logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock:ro  # Enable Docker API access
+    networks:
+      - backend
+      - database
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
       - ./server/.env
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - REDIS_URL=redis://redis:6379
+      - NODE_ENV=development
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
 
   db:
     image: postgres:14-alpine
@@ -41,8 +86,32 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/db/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - database
     env_file:
       - ./.env
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
 
   redis:
     image: redis:7-alpine
@@ -50,9 +119,58 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - backend
+    command: redis-server /usr/local/etc/redis/redis.conf
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
 
+  # Optional: Nginx reverse proxy for production-like setup
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - frontend
+    depends_on:
+      - client
+      - server
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.1'
+    profiles:
+      - production
+    security_opt:
+      - no-new-privileges:true
+
+# Named volumes for persistent data
 volumes:
   postgres_data:
+    driver: local
   redis_data:
+    driver: local
   server_logs:
+    driver: local
