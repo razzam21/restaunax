@@ -59,13 +59,17 @@ const register = asyncHandler(async (req, res) => {
  * @access  Public
  */
 const login = asyncHandler(async (req, res) => {
+  console.log('LOGIN: Starting login process');
   try {
+    console.log('LOGIN: Extracting login data');
     const loginData = {
       username: req.body.username,
       password: req.body.password,
     };
+    console.log('LOGIN: Calling userService.loginUser');
 
     const { accessToken, refreshToken, user } = await userService.loginUser(loginData);
+    console.log('LOGIN: userService.loginUser completed successfully');
 
     // Set refresh token as HTTP-only cookie
     res.cookie('refreshToken', refreshToken, {

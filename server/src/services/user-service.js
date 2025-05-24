@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const prisma = require('../db/client');
@@ -68,13 +68,16 @@ const registerUser = async (userData) => {
  * @returns {Promise<Object>} Access token, refresh token, and user data
  */
 const loginUser = async (loginData) => {
+  console.log('USER_SERVICE: loginUser called with username:', loginData.username);
   let user;
   
   try {
+    console.log('USER_SERVICE: Querying database for user');
     // Find user by username
     user = await prisma.user.findUnique({
       where: { username: loginData.username },
     });
+    console.log('USER_SERVICE: Database query completed, user found:', !!user);
 
     // Check if user exists
     if (!user) {
@@ -100,16 +103,27 @@ const loginUser = async (loginData) => {
     throw error;
   }
 
+  console.log('USER_SERVICE: Comparing passwords');
   // Compare password
-  const isPasswordValid = await bcrypt.compare(loginData.password, user.password);
+  let isPasswordValid;
+  try {
+    console.log('USER_SERVICE: About to call bcrypt.compare');
+    isPasswordValid = await bcrypt.compare(loginData.password, user.password);
+    console.log('USER_SERVICE: bcrypt.compare completed successfully, valid:', isPasswordValid);
+  } catch (bcryptError) {
+    console.error('USER_SERVICE: bcrypt.compare failed:', bcryptError);
+    throw bcryptError;
+  }
   if (!isPasswordValid) {
     const error = new Error('Invalid username or password');
     error.statusCode = 401;
     throw error;
   }
 
+  console.log('USER_SERVICE: Generating tokens');
   // Generate tokens
   const accessToken = generateAccessToken(user);
+  console.log('USER_SERVICE: Access token generated');
   const refreshToken = generateRefreshToken(user);
 
   // Store refresh token

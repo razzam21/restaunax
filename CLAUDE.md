@@ -33,16 +33,19 @@ The application follows a 4-MVP phased approach:
 
 ```bash
 # Start all services
-docker-compose up
+docker compose up
 
 # Start services in detached mode
-docker-compose up -d
+docker compose up -d
 
-# Rebuild containers
-docker-compose up --build
+# Rebuild containers (use bake for better performance)
+COMPOSE_BAKE=true docker compose up --build
+
+# Rebuild specific service with bake
+COMPOSE_BAKE=true docker compose build --no-cache server
 
 # Stop all services
-docker-compose down
+docker compose down
 ```
 
 ### Database Management
@@ -265,6 +268,22 @@ const result = await getService().doSomething();
 - React dev server requires minimum 2GB memory in containers
 - Always set `HOST=0.0.0.0` for containerized dev servers
 
+### Container-Only Development Rule
+
+**CRITICAL: NEVER run Node.js commands on the host system**
+
+All Node.js commands (npm, node, etc.) MUST be executed inside Docker containers where packages are properly installed. Running Node.js commands on the host system clutters the development environment and may cause dependency conflicts.
+
+```bash
+# ✅ CORRECT - Run commands inside containers
+docker compose exec server npm test
+docker compose exec server node src/server.js
+
+# ❌ INCORRECT - Never run on host system
+npm test
+node src/server.js
+```
+
 ### Troubleshooting Server Startup Issues
 
 If server exits immediately with "clean exit":
@@ -272,7 +291,7 @@ If server exits immediately with "clean exit":
 1. Check for services that instantiate on module load
 2. Look for Docker/system operations in constructors
 3. Use lazy initialization for heavy services
-4. Test route loading: `node -e "require('./src/routes')"`
+4. Test route loading inside container: `docker compose exec server node -e "require('./src/routes')"`
 
 ### Docker Troubleshooting Resources
 

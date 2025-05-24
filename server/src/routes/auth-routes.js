@@ -34,6 +34,14 @@ router.post(
   register
 );
 
+// Test route for debugging
+router.post('/test', (req, res) => {
+  res.json({ success: true, message: 'Test route works', body: req.body });
+});
+
+// Simplified login route for debugging
+router.post('/login-simple', login);
+
 // Login user
 router.post(
   '/login',

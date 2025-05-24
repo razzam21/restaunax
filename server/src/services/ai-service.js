@@ -11,13 +11,22 @@ const logger = createLogger('ai-service');
  */
 class AIService {
   constructor() {
-    this.aiManager = new AIManager();
+    this.aiManager = null;
     this.enabled = config.ai.enabled;
-    
-    logger.info('AI Service initialized with AI Manager', {
-      enabled: this.enabled,
-      availableEngines: this.aiManager.getAvailableEngines()
-    });
+    this.initialized = false;
+  }
+  
+  // Lazy initialization to avoid startup issues
+  _ensureInitialized() {
+    if (!this.initialized) {
+      this.aiManager = new AIManager();
+      this.initialized = true;
+      
+      logger.info('AI Service initialized with AI Manager', {
+        enabled: this.enabled,
+        availableEngines: this.aiManager.getAvailableEngines()
+      });
+    }
   }
 
   /**
@@ -25,6 +34,7 @@ class AIService {
    * @returns {boolean} True if AI is enabled
    */
   isEnabled() {
+    this._ensureInitialized();
     return this.aiManager.isEnabled();
   }
 
@@ -33,6 +43,7 @@ class AIService {
    * @throws {Error} Human-readable error if AI features are disabled
    */
   validateEnabled() {
+    this._ensureInitialized();
     try {
       this.aiManager.validateEnabled();
     } catch (error) {
@@ -53,6 +64,7 @@ class AIService {
       return false;
     }
 
+    this._ensureInitialized();
     try {
       const results = await this.aiManager.testConnection();
       const hasWorkingEngine = Object.values(results).some(result => 
@@ -77,6 +89,7 @@ class AIService {
    * @returns {Promise<Object>} Forecast result
    */
   async generateDemandForecast(params) {
+    this._ensureInitialized();
     this.validateEnabled();
     
     const { restaurantId, startDate, endDate, historicalData } = params;
@@ -177,6 +190,7 @@ Please provide detailed forecasting with confidence intervals and actionable rec
    * @returns {Promise<Object>} Optimization insights
    */
   async generateMenuOptimization(params) {
+    this._ensureInitialized();
     this.validateEnabled();
     
     const { restaurantId, menuItems, orderHistory } = params;
@@ -289,6 +303,7 @@ Please provide specific, actionable recommendations for improving menu performan
    * @returns {Object} Engine information
    */
   getEngineInfo() {
+    this._ensureInitialized();
     return {
       enabled: this.enabled,
       availableEngines: this.aiManager.getAvailableEngines(),
