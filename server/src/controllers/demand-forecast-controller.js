@@ -219,12 +219,41 @@ const createDemandForecast = asyncHandler(async (req, res) => {
       restaurantId: user.restaurantId,
       confidence: forecastResult.data.confidence,
       forecastDays: forecastResult.data.forecast?.length || 0,
-      totalDuration
+      totalDuration,
+      forecastSummary: {
+        totalPredictedOrders: forecastResult.data.summary?.total_predicted_orders,
+        totalPredictedRevenue: forecastResult.data.summary?.total_predicted_revenue,
+        insightsCount: forecastResult.data.insights?.length || 0,
+        recommendationsCount: forecastResult.data.recommendations?.length || 0
+      }
+    });
+
+    // Log detailed forecast data for debugging
+    logger.debug('Generated forecast details', {
+      userId: user.id,
+      restaurantId: user.restaurantId,
+      forecastData: {
+        confidence: forecastResult.data.confidence,
+        forecast: forecastResult.data.forecast,
+        insights: forecastResult.data.insights,
+        recommendations: forecastResult.data.recommendations,
+        summary: forecastResult.data.summary
+      },
+      historicalContext: forecastResult.historicalContext
     });
 
     // Save forecast to database for history
     try {
       const prisma = require('../db/client');
+      
+      logger.debug('User object for database save', {
+        userId: user.id,
+        userSub: user.sub,
+        restaurantId: user.restaurantId,
+        username: user.username,
+        role: user.role,
+        allUserFields: Object.keys(user)
+      });
       
       // First create the AIJob
       const aiJob = await prisma.aIJob.create({
@@ -246,7 +275,7 @@ const createDemandForecast = asyncHandler(async (req, res) => {
       });
 
       // Then create the AIInsight linked to the job
-      await prisma.aIInsight.create({
+      const aiInsight = await prisma.aIInsight.create({
         data: {
           jobId: aiJob.id,
           restaurantId: user.restaurantId,
@@ -258,13 +287,25 @@ const createDemandForecast = asyncHandler(async (req, res) => {
         }
       });
       
-      logger.debug('Forecast saved to insights history');
+      logger.info('Forecast saved to database successfully', {
+        userId: user.id,
+        restaurantId: user.restaurantId,
+        aiJobId: aiJob.id,
+        aiInsightId: aiInsight.id,
+        forecastTitle: aiInsight.title,
+        confidence: aiInsight.confidence,
+        dataSize: JSON.stringify(forecastResult.data).length
+      });
     } catch (saveError) {
+      
       logger.error('Failed to save forecast to history', { 
         error: saveError.message,
         stack: saveError.stack,
+        code: saveError.code,
         userId: user.id,
-        restaurantId: user.restaurantId
+        restaurantId: user.restaurantId,
+        errorName: saveError.name,
+        fullError: saveError.toString()
       });
       // Continue - don't fail the request if saving fails
     }
