@@ -5,6 +5,9 @@ const {
   // getMenuOptimization,
   getInsightsHistory,
   getFeatureStatus,
+  deleteInsight,
+  lockInsight,
+  unlockInsight,
 } = require('../controllers/insights-controller');
 const {
   createDemandForecast,
@@ -64,5 +67,10 @@ router.get('/demand-forecast/data-quality/:restaurantId',
 
 // Insights history
 router.get('/history', requireAuth, getInsightsHistory);
+
+// Insight management
+router.delete('/:id', requireAuth, deleteInsight);
+router.post('/:id/lock', requireAuth, lockInsight);
+router.delete('/:id/lock', requireAuth, unlockInsight);
 
 module.exports = router;

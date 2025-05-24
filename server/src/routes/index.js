@@ -33,28 +33,48 @@ router.use('/insights', requireAuth, insightsRoutes);
 router.use('/system', systemHealthRoutes);
 
 // Simple AI status endpoint
-router.get('/ai-status', requireAuth, (req, res) => {
+router.get('/ai-status', requireAuth, async (req, res) => {
   const config = require('../config');
+  
+  // Check if AI is properly configured and engines are available
+  let actuallyEnabled = false;
+  let availableEngines = [];
+  let debugInfo = {
+    configEnabled: config.ai.enabled,
+    userRole: req.user.role,
+    hasPermission: ['manager', 'owner'].includes(req.user.role)
+  };
+  
+  if (config.ai.enabled) {
+    try {
+      const AIManager = require('../services/ai-manager');
+      const aiManager = new AIManager();
+      actuallyEnabled = aiManager.isEnabled();
+      availableEngines = aiManager.getAvailableEngines();
+      debugInfo.aiManagerEnabled = actuallyEnabled;
+      debugInfo.availableEngines = availableEngines;
+    } catch (error) {
+      debugInfo.aiManagerError = error.message;
+      actuallyEnabled = false;
+    }
+  }
   
   // Add timestamp to prevent caching
   const response = {
     success: true,
     timestamp: new Date().toISOString(),
     features: {
-      aiEnabled: config.ai.enabled,
+      aiEnabled: actuallyEnabled,
       hasPermission: ['manager', 'owner'].includes(req.user.role),
-      upgradeRequired: !config.ai.enabled,
-      availableFeatures: config.ai.enabled && ['manager', 'owner'].includes(req.user.role) ? [
+      upgradeRequired: !actuallyEnabled,
+      availableFeatures: actuallyEnabled && ['manager', 'owner'].includes(req.user.role) ? [
         'demand_forecast',
         'menu_optimization'
       ] : [],
       permissionRequired: !['manager', 'owner'].includes(req.user.role),
+      availableEngines: availableEngines,
     },
-    debug: {
-      configEnabled: config.ai.enabled,
-      userRole: req.user.role,
-      hasPermission: ['manager', 'owner'].includes(req.user.role)
-    }
+    debug: debugInfo
   };
   
   // Disable caching

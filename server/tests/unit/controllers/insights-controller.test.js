@@ -1,6 +1,17 @@
 const request = require('supertest');
 const express = require('express');
-const insightsController = require('../../../src/controllers/insights-controller');
+const { 
+  createDemandForecast,
+  createMenuOptimization,
+  getJobStatus,
+  getDemandForecast,
+  getMenuOptimization,
+  getInsightsHistory,
+  getFeatureStatus,
+  deleteInsight,
+  lockInsight,
+  unlockInsight
+} = require('../../../src/controllers/insights-controller');
 const aiService = require('../../../src/services/ai-service');
 const jobQueue = require('../../../src/services/job-queue');
 const prisma = require('../../../src/db/client');
@@ -20,13 +31,16 @@ app.use((req, res, next) => {
 });
 
 // Set up routes
-app.post('/demand-forecast', insightsController.createDemandForecast);
-app.post('/menu-optimization', insightsController.createMenuOptimization);
-app.get('/jobs/:jobId', insightsController.getJobStatus);
-app.get('/demand-forecast/:jobId', insightsController.getDemandForecast);
-app.get('/menu-optimization/:jobId', insightsController.getMenuOptimization);
-app.get('/history', insightsController.getInsightsHistory);
-app.get('/feature-status', insightsController.getFeatureStatus);
+app.post('/demand-forecast', createDemandForecast);
+app.post('/menu-optimization', createMenuOptimization);
+app.get('/jobs/:jobId', getJobStatus);
+app.get('/demand-forecast/:jobId', getDemandForecast);
+app.get('/menu-optimization/:jobId', getMenuOptimization);
+app.get('/history', getInsightsHistory);
+app.get('/feature-status', getFeatureStatus);
+app.delete('/insights/:id', deleteInsight);
+app.post('/insights/:id/lock', lockInsight);
+app.delete('/insights/:id/lock', unlockInsight);
 
 // Mock dependencies
 jest.mock('../../../src/services/ai-service');
@@ -45,6 +59,7 @@ jest.mock('../../../src/db/client', () => ({
     findUnique: jest.fn(),
     findMany: jest.fn(),
     count: jest.fn(),
+    update: jest.fn(),
   },
 }));
 
@@ -588,6 +603,297 @@ describe('Insights Controller', () => {
 
       // Validation middleware should catch this
       expect(response.status).toBe(400);
+    });
+  });
+
+  describe('DELETE /insights/:id', () => {
+    const mockResponse = () => {
+      const res = {};
+      res.status = jest.fn().mockReturnValue(res);
+      res.json = jest.fn().mockReturnValue(res);
+      return res;
+    };
+
+    test('should soft delete an insight successfully', async () => {
+      const mockInsight = {
+        id: 'insight-1',
+        restaurantId: 'rest-1',
+        isActive: true,
+        type: 'demand_forecast'
+      };
+
+      prisma.aIInsight.findUnique.mockResolvedValue(mockInsight);
+      prisma.aIInsight.update.mockResolvedValue({ ...mockInsight, isActive: false });
+
+      const req = {
+        params: { id: 'insight-1' },
+        user: { restaurantId: 'rest-1', role: 'manager' }
+      };
+      const res = mockResponse();
+
+      await deleteInsight(req, res);
+
+      expect(prisma.aIInsight.update).toHaveBeenCalledWith({
+        where: { id: 'insight-1' },
+        data: { isActive: false }
+      });
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Insight deleted successfully'
+      });
+    });
+
+    test('should return 404 for non-existent insight', async () => {
+      prisma.aIInsight.findUnique.mockResolvedValue(null);
+
+      const req = {
+        params: { id: 'non-existent' },
+        user: { restaurantId: 'rest-1', role: 'manager' }
+      };
+      const res = mockResponse();
+
+      await deleteInsight(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'Insight not found',
+        code: 'INSIGHT_NOT_FOUND'
+      });
+    });
+
+    test('should prevent deletion of insights from different restaurant', async () => {
+      const mockInsight = {
+        id: 'insight-1',
+        restaurantId: 'rest-2', // Different restaurant
+        isActive: true
+      };
+
+      prisma.aIInsight.findUnique.mockResolvedValue(mockInsight);
+
+      const req = {
+        params: { id: 'insight-1' },
+        user: { restaurantId: 'rest-1', role: 'manager' }
+      };
+      const res = mockResponse();
+
+      await deleteInsight(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'Access denied to insight from different restaurant',
+        code: 'ACCESS_DENIED'
+      });
+    });
+
+    test('should require manager or owner role for deletion', async () => {
+      const req = {
+        params: { id: 'insight-1' },
+        user: { restaurantId: 'rest-1', role: 'wait_staff' }
+      };
+      const res = mockResponse();
+
+      await deleteInsight(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'Insufficient permissions. Only managers and owners can delete insights.',
+        code: 'INSUFFICIENT_PERMISSIONS'
+      });
+    });
+
+    test('should prevent deletion of locked insights', async () => {
+      const mockInsight = {
+        id: 'insight-1',
+        restaurantId: 'rest-1',
+        isActive: true,
+        data: { locked: true, lockedBy: 'other-user' }
+      };
+
+      prisma.aIInsight.findUnique.mockResolvedValue(mockInsight);
+
+      const req = {
+        params: { id: 'insight-1' },
+        user: { restaurantId: 'rest-1', role: 'manager' }
+      };
+      const res = mockResponse();
+
+      await deleteInsight(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'Cannot delete a locked insight. Unlock it first.',
+        code: 'INSIGHT_LOCKED'
+      });
+      expect(prisma.aIInsight.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('POST /insights/:id/lock', () => {
+    const mockResponse = () => {
+      const res = {};
+      res.status = jest.fn().mockReturnValue(res);
+      res.json = jest.fn().mockReturnValue(res);
+      return res;
+    };
+
+    test('should lock an insight successfully', async () => {
+      const mockInsight = {
+        id: 'insight-1',
+        restaurantId: 'rest-1',
+        isActive: true,
+        type: 'demand_forecast',
+        data: { forecast: [], insights: [] }
+      };
+
+      prisma.aIInsight.findUnique.mockResolvedValue(mockInsight);
+      prisma.aIInsight.update.mockResolvedValue({ 
+        ...mockInsight, 
+        data: { ...mockInsight.data, locked: true, lockedBy: 'user-1', lockedAt: new Date() }
+      });
+
+      const req = {
+        params: { id: 'insight-1' },
+        user: { sub: 'user-1', restaurantId: 'rest-1', role: 'manager', username: 'testuser' }
+      };
+      const res = mockResponse();
+
+      await lockInsight(req, res);
+
+      expect(prisma.aIInsight.update).toHaveBeenCalledWith({
+        where: { id: 'insight-1' },
+        data: {
+          data: expect.objectContaining({
+            locked: true,
+            lockedBy: 'user-1',
+            lockedByName: 'testuser',
+            lockedAt: expect.any(String)
+          })
+        }
+      });
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Insight locked successfully'
+      });
+    });
+
+    test('should prevent locking already locked insight', async () => {
+      const mockInsight = {
+        id: 'insight-1',
+        restaurantId: 'rest-1',
+        data: { locked: true, lockedBy: 'other-user' }
+      };
+
+      prisma.aIInsight.findUnique.mockResolvedValue(mockInsight);
+
+      const req = {
+        params: { id: 'insight-1' },
+        user: { sub: 'user-1', restaurantId: 'rest-1', role: 'manager' }
+      };
+      const res = mockResponse();
+
+      await lockInsight(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'Insight is already locked by another user',
+        code: 'INSIGHT_LOCKED'
+      });
+    });
+  });
+
+  describe('DELETE /insights/:id/lock', () => {
+    const mockResponse = () => {
+      const res = {};
+      res.status = jest.fn().mockReturnValue(res);
+      res.json = jest.fn().mockReturnValue(res);
+      return res;
+    };
+
+    test('should unlock an insight successfully', async () => {
+      const mockInsight = {
+        id: 'insight-1',
+        restaurantId: 'rest-1',
+        data: { locked: true, lockedBy: 'user-1', forecast: [] }
+      };
+
+      prisma.aIInsight.findUnique.mockResolvedValue(mockInsight);
+      prisma.aIInsight.update.mockResolvedValue({ 
+        ...mockInsight, 
+        data: { forecast: [] } // locked fields removed
+      });
+
+      const req = {
+        params: { id: 'insight-1' },
+        user: { sub: 'user-1', restaurantId: 'rest-1', role: 'manager' }
+      };
+      const res = mockResponse();
+
+      await unlockInsight(req, res);
+
+      expect(prisma.aIInsight.update).toHaveBeenCalledWith({
+        where: { id: 'insight-1' },
+        data: {
+          data: { forecast: [] } // No lock fields
+        }
+      });
+    });
+
+    test('should prevent unlocking by different user (non-owner)', async () => {
+      const mockInsight = {
+        id: 'insight-1',
+        restaurantId: 'rest-1',
+        data: { locked: true, lockedBy: 'other-user' }
+      };
+
+      prisma.aIInsight.findUnique.mockResolvedValue(mockInsight);
+
+      const req = {
+        params: { id: 'insight-1' },
+        user: { sub: 'user-1', restaurantId: 'rest-1', role: 'manager' }
+      };
+      const res = mockResponse();
+
+      await unlockInsight(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'Only the user who locked this insight or an owner can unlock it',
+        code: 'UNLOCK_DENIED'
+      });
+    });
+
+    test('should allow owner to unlock any insight', async () => {
+      const mockInsight = {
+        id: 'insight-1',
+        restaurantId: 'rest-1',
+        data: { locked: true, lockedBy: 'other-user', forecast: [] }
+      };
+
+      prisma.aIInsight.findUnique.mockResolvedValue(mockInsight);
+      prisma.aIInsight.update.mockResolvedValue({ 
+        ...mockInsight, 
+        data: { forecast: [] }
+      });
+
+      const req = {
+        params: { id: 'insight-1' },
+        user: { sub: 'user-1', restaurantId: 'rest-1', role: 'owner' }
+      };
+      const res = mockResponse();
+
+      await unlockInsight(req, res);
+
+      expect(prisma.aIInsight.update).toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Insight unlocked successfully'
+      });
     });
   });
 });
