@@ -585,6 +585,15 @@ const getInsightsHistory = asyncHandler(async (req, res) => {
       restaurantId: user.restaurantId,
       isActive: true,
     };
+    
+    // Debug logging for history query
+    console.log('🔍 History query user:', {
+      userId: user.id,
+      userSub: user.sub,
+      restaurantId: user.restaurantId,
+      userKeys: Object.keys(user)
+    });
+    console.log('🔍 History query where clause:', where);
 
     if (type) {
       where.type = type.toUpperCase();
@@ -596,12 +605,12 @@ const getInsightsHistory = asyncHandler(async (req, res) => {
         where,
         include: {
           job: {
-            select: {
-              id: true,
-              type: true,
-              status: true,
-              createdAt: true,
-              completedAt: true,
+            include: {
+              user: {
+                select: {
+                  username: true,
+                },
+              },
             },
           },
         },
@@ -616,32 +625,91 @@ const getInsightsHistory = asyncHandler(async (req, res) => {
 
     const totalPages = Math.ceil(totalCount / parseInt(limit));
 
-    logger.debug('Insights history retrieved', {
+    logger.info('Insights history retrieved', {
       userId: user.id,
+      restaurantId: user.restaurantId,
       page,
       limit,
       totalCount,
-      type: type || 'all'
+      insightsFound: insights.length,
+      type: type || 'all',
+      insightIds: insights.map(i => i.id),
+      insightTypes: insights.map(i => i.type),
+      insightTitles: insights.map(i => i.title)
     });
+
+    // Log detailed insight data for debugging
+    if (insights.length > 0) {
+      logger.debug('Detailed insights data', {
+        userId: user.id,
+        restaurantId: user.restaurantId,
+        insights: insights.map(insight => ({
+          id: insight.id,
+          jobId: insight.jobId,
+          type: insight.type,
+          title: insight.title,
+          confidence: insight.confidence,
+          createdAt: insight.createdAt,
+          dataSize: insight.data ? JSON.stringify(insight.data).length : 0,
+          hasData: !!insight.data
+        }))
+      });
+    }
+
+    // Disable caching for insights history to ensure fresh lock status
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
 
     res.json({
       success: true,
-      insights: insights.map(insight => ({
-        id: insight.id,
-        jobId: insight.jobId,
-        type: insight.type.toLowerCase(),
-        title: insight.title,
-        summary: insight.summary,
-        confidence: insight.confidence,
-        createdAt: insight.createdAt,
-        validUntil: insight.validUntil,
-        job: {
-          id: insight.job.id,
-          status: insight.job.status.toLowerCase(),
-          createdAt: insight.job.createdAt,
-          completedAt: insight.job.completedAt,
-        },
-      })),
+      insights: insights.map(insight => {
+        // Reconstruct requestInfo and performance from job data
+        const job = insight.job;
+        const parameters = job.parameters || {};
+        
+        // Get user info for requestedBy field
+        const requestedBy = job.user?.username || 'unknown';
+        
+        // Calculate performance metrics
+        const startTime = job.startedAt ? new Date(job.startedAt).getTime() : new Date(job.createdAt).getTime();
+        const endTime = job.completedAt ? new Date(job.completedAt).getTime() : new Date().getTime();
+        const totalDuration = endTime - startTime;
+        
+        return {
+          id: insight.id,
+          jobId: insight.jobId,
+          type: insight.type.toLowerCase(),
+          title: insight.title,
+          summary: insight.summary,
+          confidence: insight.confidence,
+          createdAt: insight.createdAt,
+          validUntil: insight.validUntil,
+          data: insight.data, // Include the data field which contains lock info
+          result: {
+            data: insight.data,
+            historicalContext: job.result?.historicalContext || {},
+            metadata: job.result?.metadata || {}
+          },
+          requestInfo: {
+            startDate: parameters.startDate,
+            endDate: parameters.endDate,
+            lookbackDays: parameters.lookbackDays,
+            requestedBy: requestedBy,
+            requestedAt: job.createdAt
+          },
+          performance: {
+            generation_duration: job.result?.metadata?.generation_duration || totalDuration,
+            total_request_duration: totalDuration
+          },
+          job: {
+            id: insight.job.id,
+            status: insight.job.status.toLowerCase(),
+            createdAt: insight.job.createdAt,
+            completedAt: insight.job.completedAt,
+          },
+        };
+      }),
       pagination: {
         currentPage: parseInt(page),
         totalPages,
@@ -653,13 +721,19 @@ const getInsightsHistory = asyncHandler(async (req, res) => {
   } catch (error) {
     logger.error('Failed to get insights history', {
       error: error.message,
-      userId: user.id
+      stack: error.stack,
+      code: error.code,
+      name: error.name,
+      userId: user.id,
+      restaurantId: user.restaurantId,
+      queryParams: { page, limit, type }
     });
 
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve insights history',
-      code: 'INTERNAL_ERROR'
+      code: 'INTERNAL_ERROR',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -703,6 +777,306 @@ const getFeatureStatus = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * DELETE /insights/:id
+ * Soft delete an insight (set isActive to false)
+ */
+const deleteInsight = asyncHandler(async (req, res) => {
+  const config = require('../config');
+  
+  // Early feature flag check
+  if (!config.ai.enabled) {
+    return res.status(402).json({
+      success: false,
+      error: 'AI features are not available with your current plan. Upgrade to Premium to access AI insights.',
+      code: 'AI_FEATURES_DISABLED',
+      upgradeRequired: true
+    });
+  }
+
+  const { user } = req;
+  const { id } = req.params;
+
+  try {
+    // Validate user has required permissions
+    if (!['manager', 'owner'].includes(user.role)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Insufficient permissions. Only managers and owners can delete insights.',
+        code: 'INSUFFICIENT_PERMISSIONS'
+      });
+    }
+
+    // Find the insight
+    const insight = await prisma.aIInsight.findUnique({
+      where: { id }
+    });
+
+    if (!insight) {
+      return res.status(404).json({
+        success: false,
+        error: 'Insight not found',
+        code: 'INSIGHT_NOT_FOUND'
+      });
+    }
+
+    // Ensure user can only delete insights from their restaurant
+    if (insight.restaurantId !== user.restaurantId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied to insight from different restaurant',
+        code: 'ACCESS_DENIED'
+      });
+    }
+
+    // Check if insight is locked
+    if (insight.data?.locked) {
+      return res.status(409).json({
+        success: false,
+        error: 'Cannot delete a locked insight. Unlock it first.',
+        code: 'INSIGHT_LOCKED'
+      });
+    }
+
+    // Soft delete the insight
+    await prisma.aIInsight.update({
+      where: { id },
+      data: { isActive: false }
+    });
+
+    logger.info('Insight deleted successfully', {
+      userId: user.sub || user.id,
+      restaurantId: user.restaurantId,
+      insightId: id,
+      insightType: insight.type
+    });
+
+    res.json({
+      success: true,
+      message: 'Insight deleted successfully'
+    });
+
+  } catch (error) {
+    logger.error('Failed to delete insight', {
+      error: error.message,
+      userId: user.sub || user.id,
+      insightId: id
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete insight',
+      code: 'DELETION_FAILED'
+    });
+  }
+});
+
+/**
+ * POST /insights/:id/lock
+ * Lock an insight to prevent modifications
+ */
+const lockInsight = asyncHandler(async (req, res) => {
+  const config = require('../config');
+  
+  // Early feature flag check
+  if (!config.ai.enabled) {
+    return res.status(402).json({
+      success: false,
+      error: 'AI features are not available with your current plan. Upgrade to Premium to access AI insights.',
+      code: 'AI_FEATURES_DISABLED',
+      upgradeRequired: true
+    });
+  }
+
+  const { user } = req;
+  const { id } = req.params;
+
+  try {
+    // Validate user has required permissions
+    if (!['manager', 'owner'].includes(user.role)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Insufficient permissions. Only managers and owners can lock insights.',
+        code: 'INSUFFICIENT_PERMISSIONS'
+      });
+    }
+
+    // Find the insight
+    const insight = await prisma.aIInsight.findUnique({
+      where: { id }
+    });
+
+    if (!insight) {
+      return res.status(404).json({
+        success: false,
+        error: 'Insight not found',
+        code: 'INSIGHT_NOT_FOUND'
+      });
+    }
+
+    // Ensure user can only lock insights from their restaurant
+    if (insight.restaurantId !== user.restaurantId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied to insight from different restaurant',
+        code: 'ACCESS_DENIED'
+      });
+    }
+
+    // Check if already locked
+    if (insight.data?.locked && insight.data?.lockedBy !== user.sub) {
+      return res.status(409).json({
+        success: false,
+        error: 'Insight is already locked by another user',
+        code: 'INSIGHT_LOCKED'
+      });
+    }
+
+    // Lock the insight
+    const updatedData = {
+      ...insight.data,
+      locked: true,
+      lockedBy: user.sub || user.id,
+      lockedByName: user.username,
+      lockedAt: new Date().toISOString()
+    };
+
+    await prisma.aIInsight.update({
+      where: { id },
+      data: { data: updatedData }
+    });
+
+    logger.info('Insight locked successfully', {
+      userId: user.sub || user.id,
+      restaurantId: user.restaurantId,
+      insightId: id,
+      lockedBy: user.username
+    });
+
+    res.json({
+      success: true,
+      message: 'Insight locked successfully'
+    });
+
+  } catch (error) {
+    logger.error('Failed to lock insight', {
+      error: error.message,
+      userId: user.sub || user.id,
+      insightId: id
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to lock insight',
+      code: 'LOCK_FAILED'
+    });
+  }
+});
+
+/**
+ * DELETE /insights/:id/lock
+ * Unlock an insight
+ */
+const unlockInsight = asyncHandler(async (req, res) => {
+  const config = require('../config');
+  
+  // Early feature flag check
+  if (!config.ai.enabled) {
+    return res.status(402).json({
+      success: false,
+      error: 'AI features are not available with your current plan. Upgrade to Premium to access AI insights.',
+      code: 'AI_FEATURES_DISABLED',
+      upgradeRequired: true
+    });
+  }
+
+  const { user } = req;
+  const { id } = req.params;
+
+  try {
+    // Validate user has required permissions
+    if (!['manager', 'owner'].includes(user.role)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Insufficient permissions. Only managers and owners can unlock insights.',
+        code: 'INSUFFICIENT_PERMISSIONS'
+      });
+    }
+
+    // Find the insight
+    const insight = await prisma.aIInsight.findUnique({
+      where: { id }
+    });
+
+    if (!insight) {
+      return res.status(404).json({
+        success: false,
+        error: 'Insight not found',
+        code: 'INSIGHT_NOT_FOUND'
+      });
+    }
+
+    // Ensure user can only unlock insights from their restaurant
+    if (insight.restaurantId !== user.restaurantId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied to insight from different restaurant',
+        code: 'ACCESS_DENIED'
+      });
+    }
+
+    // Check if user can unlock (either the locker or an owner)
+    const canUnlock = !insight.data?.locked || 
+                      insight.data?.lockedBy === user.sub || 
+                      user.role === 'owner';
+
+    if (!canUnlock) {
+      return res.status(403).json({
+        success: false,
+        error: 'Only the user who locked this insight or an owner can unlock it',
+        code: 'UNLOCK_DENIED'
+      });
+    }
+
+    // Remove lock fields
+    const updatedData = { ...insight.data };
+    delete updatedData.locked;
+    delete updatedData.lockedBy;
+    delete updatedData.lockedByName;
+    delete updatedData.lockedAt;
+
+    await prisma.aIInsight.update({
+      where: { id },
+      data: { data: updatedData }
+    });
+
+    logger.info('Insight unlocked successfully', {
+      userId: user.sub || user.id,
+      restaurantId: user.restaurantId,
+      insightId: id,
+      unlockedBy: user.username
+    });
+
+    res.json({
+      success: true,
+      message: 'Insight unlocked successfully'
+    });
+
+  } catch (error) {
+    logger.error('Failed to unlock insight', {
+      error: error.message,
+      userId: user.sub || user.id,
+      insightId: id
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to unlock insight',
+      code: 'UNLOCK_FAILED'
+    });
+  }
+});
+
 module.exports = {
   createDemandForecast,
   createMenuOptimization,
@@ -711,4 +1085,7 @@ module.exports = {
   getMenuOptimization,
   getInsightsHistory,
   getFeatureStatus,
+  deleteInsight,
+  lockInsight,
+  unlockInsight,
 };
