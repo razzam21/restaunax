@@ -50,7 +50,19 @@ Restaunax is a real-time order management dashboard for restaurants. The system 
 ### Running the Application
 
 1. Clone the repository
-2. Start the application with Docker Compose:
+2. Set up environment files:
+
+```bash
+# Copy sample environment files
+cp .env.example .env
+cp server/.env.example server/.env
+cp client/.env.example client/.env
+
+# Edit the .env files with your configuration
+# For Docker setup, the defaults should work out of the box
+```
+
+3. Start the application with Docker Compose:
 
 ```bash
 docker-compose up
@@ -59,6 +71,22 @@ docker-compose up
 The application will be available at:
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8081
+
+### Environment Configuration
+
+The application uses multiple environment files for configuration:
+
+- **`.env`**: Docker Compose variables (database credentials, environment)
+- **`server/.env`**: Backend server configuration (JWT secrets, AI settings, etc.)
+- **`client/.env`**: Frontend configuration (API URL, build settings)
+
+**Important Security Notes:**
+- Change JWT secrets in `server/.env` for production
+- Use strong database passwords in `.env` for production
+- The sample files contain safe defaults for development
+
+**AI Features:**
+Set `OLLAMA_ENABLED=true` in `server/.env` to enable AI-powered insights and menu optimization features.
 
 ### Development Setup
 
