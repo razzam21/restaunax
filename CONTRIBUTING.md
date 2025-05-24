@@ -27,9 +27,12 @@ restaunax/
 
 1. **Setup Development Environment**:
    ```bash
-   # Clone and start with optimized Docker
+   # Clone and setup environment
    git clone <repository>
    cd restaunax
+   cp .env.example .env
+   
+   # Start with optimized Docker
    COMPOSE_BAKE=true docker compose up --build
    ```
 

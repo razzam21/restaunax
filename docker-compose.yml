@@ -17,7 +17,7 @@ services:
       dockerfile: ../docker/client/Dockerfile
       target: development
     ports:
-      - "3000:3000"
+      - "${CLIENT_PORT:-3000}:3000"
     volumes:
       - ./client:/app
       - /app/node_modules
@@ -28,12 +28,13 @@ services:
       server:
         condition: service_healthy
     env_file:
-      - ./client/.env
+      - ./.env
     environment:
-      - REACT_APP_API_URL=http://localhost:8081/api
-      - NODE_ENV=development
-      - WATCHPACK_POLLING=true
-      - HOST=0.0.0.0
+      - REACT_APP_API_URL=${REACT_APP_API_URL}
+      - NODE_ENV=${NODE_ENV}
+      - WATCHPACK_POLLING=${WATCHPACK_POLLING}
+      - HOST=${HOST}
+      - GENERATE_SOURCEMAP=${GENERATE_SOURCEMAP}
     restart: unless-stopped
     deploy:
       resources:
@@ -50,7 +51,7 @@ services:
       dockerfile: ../docker/server/Dockerfile
       target: development
     ports:
-      - "8081:8080"
+      - "${SERVER_EXTERNAL_PORT:-8081}:${SERVER_INTERNAL_PORT:-8080}"
     volumes:
       - ./server:/app
       - /app/node_modules
@@ -65,11 +66,23 @@ services:
       redis:
         condition: service_healthy
     env_file:
-      - ./server/.env
+      - ./.env
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      - REDIS_URL=redis://redis:6379
-      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - NODE_ENV=${NODE_ENV}
+      - PORT=${SERVER_INTERNAL_PORT}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_ACCESS_EXPIRES_IN=${JWT_ACCESS_EXPIRES_IN}
+      - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN}
+      - BCRYPT_SALT_ROUNDS=${BCRYPT_SALT_ROUNDS}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - OLLAMA_ENABLED=${OLLAMA_ENABLED}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
+      - OLLAMA_MODEL=${OLLAMA_MODEL}
+      - OLLAMA_TIMEOUT=${OLLAMA_TIMEOUT}
     restart: unless-stopped
     deploy:
       resources:
@@ -83,7 +96,7 @@ services:
   db:
     image: postgres:14-alpine
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/db/init:/docker-entrypoint-initdb.d:ro
@@ -116,12 +129,14 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
       - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
     networks:
       - backend
+    env_file:
+      - ./.env
     command: redis-server /usr/local/etc/redis/redis.conf
     restart: unless-stopped
     deploy:

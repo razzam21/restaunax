@@ -50,15 +50,13 @@ Restaunax is a real-time order management dashboard for restaurants. The system 
 ### Running the Application
 
 1. Clone the repository
-2. Set up environment files:
+2. Set up environment configuration:
 
 ```bash
-# Copy sample environment files
+# Copy the consolidated environment template
 cp .env.example .env
-cp server/.env.example server/.env
-cp client/.env.example client/.env
 
-# Edit the .env files with your configuration
+# Edit the .env file with your configuration
 # For Docker setup, the defaults should work out of the box
 ```
 
@@ -91,19 +89,25 @@ For detailed information, see:
 
 ### Environment Configuration
 
-The application uses multiple environment files for configuration:
+The application uses a **single consolidated `.env` file** for all configuration:
 
-- **`.env`**: Docker Compose variables (database credentials, environment)
-- **`server/.env`**: Backend server configuration (JWT secrets, AI settings, etc.)
-- **`client/.env`**: Frontend configuration (API URL, build settings)
+- **`.env`**: All environment variables (database, API, security, development settings)
+
+**Benefits:**
+- ✅ Single source of truth for all configuration
+- ✅ No duplication across multiple files  
+- ✅ Consistent values across all services
+- ✅ Simplified setup and maintenance
+
+For detailed information, see [`docs/ENVIRONMENT_MANAGEMENT.md`](docs/ENVIRONMENT_MANAGEMENT.md).
 
 **Important Security Notes:**
-- Change JWT secrets in `server/.env` for production
-- Use strong database passwords in `.env` for production
-- The sample files contain safe defaults for development
+- Change JWT secrets in `.env` for production
+- Use strong database passwords in `.env` for production  
+- The default values are safe for development
 
 **AI Features:**
-Set `OLLAMA_ENABLED=true` in `server/.env` to enable AI-powered insights and menu optimization features.
+Set `OLLAMA_ENABLED=true` in `.env` to enable AI-powered insights and menu optimization features.
 
 ### Development Setup
 

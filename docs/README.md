@@ -17,6 +17,7 @@ This directory contains comprehensive documentation for the Restaunax project.
 - **[MVP5_IMPLEMENTATION.md](mvp/MVP5_IMPLEMENTATION.md)** - Advanced features
 
 ### 🛠️ Technical Documentation
+- **[ENVIRONMENT_MANAGEMENT.md](ENVIRONMENT_MANAGEMENT.md)** - Consolidated environment configuration guide
 - **[ERROR_HANDLING.md](ERROR_HANDLING.md)** - Error handling patterns and best practices
 - **[LOG_MANAGEMENT.md](LOG_MANAGEMENT.md)** - Logging configuration and management
 - **[SETUP_AUTH.md](SETUP_AUTH.md)** - Authentication setup guide
@@ -30,10 +31,12 @@ This directory contains comprehensive documentation for the Restaunax project.
 
 ### Getting Started
 1. [Main README](../README.md) - Project overview and setup
-2. [Docker Setup](docker/DOCKER_GUIDE.md) - Optimized Docker configuration
-3. [MVP Implementation](mvp/) - Feature development guides
+2. [Environment Setup](ENVIRONMENT_MANAGEMENT.md) - Consolidated configuration guide
+3. [Docker Setup](docker/DOCKER_GUIDE.md) - Optimized Docker configuration
+4. [MVP Implementation](mvp/) - Feature development guides
 
 ### Development
+- [Environment Management](ENVIRONMENT_MANAGEMENT.md) - Single .env configuration
 - [Authentication Setup](SETUP_AUTH.md) - Set up user authentication
 - [Error Handling](ERROR_HANDLING.md) - Handle errors gracefully
 - [Log Management](LOG_MANAGEMENT.md) - Configure logging
