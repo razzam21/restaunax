@@ -65,6 +65,7 @@ export const AIProvider = ({ children }) => {
   // Load job history
   const loadJobHistory = useCallback(async (page = 1, type = null) => {
     if (!hasAccess || !featureStatus.aiEnabled) {
+      console.log('❌ Not loading history - no access or AI disabled', { hasAccess, aiEnabled: featureStatus.aiEnabled });
       return;
     }
 
@@ -75,13 +76,20 @@ export const AIProvider = ({ children }) => {
       params.append('limit', '20');
       if (type) params.append('type', type);
 
+      console.log('📡 Calling insights history API:', `/insights/history?${params.toString()}`);
       const response = await api.get(`/insights/history?${params.toString()}`, {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
       
+      console.log('📦 History API response:', response.data);
+      
       if (response.data.success) {
         setJobHistory(response.data.insights);
-        setInsights(response.data.insights);
+        
+        // For now, just set the insights directly from server
+        const serverInsights = response.data.insights || [];
+        console.log('✅ Setting insights from server:', serverInsights.length, 'insights');
+        setInsights(serverInsights);
       }
     } catch (err) {
       console.error('Failed to load job history:', err);
@@ -118,8 +126,13 @@ export const AIProvider = ({ children }) => {
           createdAt: new Date().toISOString()
         };
         
-        // Add to insights history since it's completed immediately
+        // Add to insights history immediately for instant feedback
         setInsights(prev => [forecastResult, ...prev]);
+        
+        // Refresh insights from server to get the real database entry
+        setTimeout(() => {
+          loadJobHistory();
+        }, 1000); // Small delay to ensure database write is complete
         
         return forecastResult;
       } else {
@@ -253,7 +266,9 @@ export const AIProvider = ({ children }) => {
 
   // Load initial data when AI is enabled
   useEffect(() => {
+    console.log('🔄 useEffect for loadJobHistory triggered', { hasAccess, aiEnabled: featureStatus.aiEnabled });
     if (hasAccess && featureStatus.aiEnabled) {
+      console.log('✅ Calling loadJobHistory from useEffect');
       loadJobHistory();
     }
   }, [hasAccess, featureStatus.aiEnabled, loadJobHistory]);
@@ -281,6 +296,97 @@ export const AIProvider = ({ children }) => {
     }
   }, [error]);
 
+  // Delete insight
+  const deleteInsight = useCallback(async (insightId) => {
+    if (!hasAccess || !featureStatus.aiEnabled) {
+      throw new Error('AI features are not available');
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await api.delete(`/insights/${insightId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      
+      if (response.data.success) {
+        // Remove from local state
+        setInsights(prev => prev.filter(insight => insight.id !== insightId));
+        setJobHistory(prev => prev.filter(insight => insight.id !== insightId));
+        return true;
+      } else {
+        throw new Error(response.data.error || 'Failed to delete insight');
+      }
+    } catch (err) {
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to delete insight';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [hasAccess, featureStatus.aiEnabled, accessToken]);
+
+  // Lock insight
+  const lockInsight = useCallback(async (insightId) => {
+    if (!hasAccess || !featureStatus.aiEnabled) {
+      throw new Error('AI features are not available');
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await api.post(`/insights/${insightId}/lock`, {}, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      
+      if (response.data.success) {
+        // Refresh insights to get updated lock status
+        loadJobHistory();
+        return true;
+      } else {
+        throw new Error(response.data.error || 'Failed to lock insight');
+      }
+    } catch (err) {
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to lock insight';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [hasAccess, featureStatus.aiEnabled, accessToken, loadJobHistory]);
+
+  // Unlock insight
+  const unlockInsight = useCallback(async (insightId) => {
+    if (!hasAccess || !featureStatus.aiEnabled) {
+      throw new Error('AI features are not available');
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await api.delete(`/insights/${insightId}/lock`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      
+      if (response.data.success) {
+        // Refresh insights to get updated lock status
+        loadJobHistory();
+        return true;
+      } else {
+        throw new Error(response.data.error || 'Failed to unlock insight');
+      }
+    } catch (err) {
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to unlock insight';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [hasAccess, featureStatus.aiEnabled, accessToken, loadJobHistory]);
+
   const contextValue = {
     // Feature status
     featureStatus,
@@ -300,6 +406,9 @@ export const AIProvider = ({ children }) => {
     createMenuOptimization,
     getJobStatus,
     getInsightResults,
+    deleteInsight,
+    lockInsight,
+    unlockInsight,
     
     // Utilities
     clearError: () => setError(null),
