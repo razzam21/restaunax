@@ -10,9 +10,7 @@ variables:
   
   # Application configuration
   FRONTEND_PORT: "3004"
-  OLLAMA_URL: "http://10.13.0.254:11434"
   CORS_ORIGIN: "http://restaunax.turnersrus.com,https://restaunax.turnersrus.com"
-  OLLAMA_MODEL: "deepseek-coder:1.3b"
   PRODUCTION_API_URL: "https://restaunax.turnersrus.com/api"
 
 # Build all Docker images for the application
@@ -58,13 +56,12 @@ build_images:
     - sed -i "/^JWT_ACCESS_SECRET=/c\JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}" .env
     - sed -i "/^JWT_REFRESH_SECRET=/c\JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}" .env
     
-    # AI Configuration - Enable AI features
+    # AI Configuration - Enable AI features with OpenAI
     - sed -i "s/AI_ENABLED=false/AI_ENABLED=true/" .env
-    - sed -i "s/OLLAMA_ENABLED=false/OLLAMA_ENABLED=true/" .env
-    - sed -i "s|OLLAMA_BASE_URL=http://localhost:11434|OLLAMA_BASE_URL=${OLLAMA_URL}|" .env
-    - sed -i "s/OLLAMA_MODEL=llama3.2/OLLAMA_MODEL=${OLLAMA_MODEL}/" .env
-    - sed -i "s/OLLAMA_TIMEOUT=30000/OLLAMA_TIMEOUT=60000/" .env
-    - sed -i "s/AI_PRIMARY_ENGINE=ollama/AI_PRIMARY_ENGINE=ollama/" .env
+    - sed -i "s/OPENAI_ENABLED=false/OPENAI_ENABLED=true/" .env
+    - sed -i "s/OPENAI_API_KEY=your-openai-api-key-here/OPENAI_API_KEY=${OPENAI_API_KEY}/" .env
+    - sed -i "s/OLLAMA_ENABLED=false/OLLAMA_ENABLED=false/" .env
+    - sed -i "s/AI_PRIMARY_ENGINE=ollama/AI_PRIMARY_ENGINE=openai/" .env
     
     # Show .env file (without secrets) for debugging
     - echo "Generated .env file configuration:"
@@ -140,6 +137,9 @@ deploy_to_unraid:
     
     # Pull images and deploy
     - ssh $UNRAID_USER@$UNRAID_SERVER "cd /mnt/user/appdata/restaunax && docker pull $UNRAID_SERVER:5000/restaunax-client:latest && docker pull $UNRAID_SERVER:5000/restaunax-server:latest && docker compose -f docker-compose.production.yml -p restaunax down && docker image prune -f && docker compose -f docker-compose.production.yml -p restaunax up -d"
+    
+    # Database setup (only if tables don't exist)
+    - ssh $UNRAID_USER@$UNRAID_SERVER 'cd /mnt/user/appdata/restaunax && sleep 15 && if ! docker compose -f docker-compose.production.yml -p restaunax exec -T server node -e "const {PrismaClient} = require(\"@prisma/client\"); const prisma = new PrismaClient(); prisma.user.findFirst().then(() => console.log(\"TABLES_EXIST\")).catch(() => console.log(\"NO_TABLES\")).finally(() => prisma.\$disconnect());" 2>/dev/null | grep -q "TABLES_EXIST"; then echo "Database needs setup, running migrations..." && docker compose -f docker-compose.production.yml -p restaunax exec -T server npx prisma migrate deploy && echo "Seeding database..." && docker compose -f docker-compose.production.yml -p restaunax exec -T server npm run seed; else echo "Database already initialized, skipping setup"; fi'
     
     # Health checks and status
     - echo "Running post-deployment verification..."
