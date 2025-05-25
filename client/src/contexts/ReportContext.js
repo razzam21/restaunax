@@ -97,17 +97,13 @@ export const ReportProvider = ({ children }) => {
       
       const url = `/reports/orders/download?${queryParams.toString()}`;
       
-      // Use fetch with blob response type to handle file download
-      const response = await fetch(`${api.defaults.baseURL}${url}`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
+      // Use api service with blob response type to handle file download
+      const response = await api.get(url, {
+        responseType: 'blob'
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to download report');
-      }
-      
-      // Get filename from content-disposition header
-      const contentDisposition = response.headers.get('content-disposition');
+      // Get filename from content-disposition header (axios format)
+      const contentDisposition = response.headers['content-disposition'];
       let filename = 'report';
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
@@ -116,8 +112,8 @@ export const ReportProvider = ({ children }) => {
         }
       }
       
-      // Create download link
-      const blob = await response.blob();
+      // The response.data is already a blob when responseType is 'blob'
+      const blob = response.data;
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = downloadUrl;
