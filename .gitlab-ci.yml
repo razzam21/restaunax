@@ -131,86 +131,20 @@ deploy_to_unraid:
     # Transfer deployment package to Unraid
     - scp restaunax-deploy.tar.gz $UNRAID_USER@$UNRAID_SERVER:/tmp/
     
-    # Deploy on Unraid server
-    - ssh $UNRAID_USER@$UNRAID_SERVER "
-        set -e &&
-        echo 'Setting up Restaunax deployment directory...' &&
-        mkdir -p /mnt/user/appdata/restaunax &&
-        cd /mnt/user/appdata/restaunax &&
-        
-        echo 'Extracting deployment package...' &&
-        tar -xzf /tmp/restaunax-deploy.tar.gz &&
-        rm /tmp/restaunax-deploy.tar.gz &&
-        
-        echo 'Checking for existing database container...' &&
-        if docker ps -a --format '{{.Names}}' | grep -q '^restaunax-db\$'; then
-          echo 'Existing restaunax-db container found, preserving database credentials...' &&
-          if docker ps --format '{{.Names}}' | grep -q '^restaunax-server\$'; then
-            echo 'Getting credentials from running restaunax-server container...' &&
-            OLD_DB_PASSWORD=\$(docker exec restaunax-server printenv POSTGRES_PASSWORD 2>/dev/null || echo '') &&
-            OLD_JWT_ACCESS=\$(docker exec restaunax-server printenv JWT_ACCESS_SECRET 2>/dev/null || echo '') &&
-            OLD_JWT_REFRESH=\$(docker exec restaunax-server printenv JWT_REFRESH_SECRET 2>/dev/null || echo '') &&
-            echo 'Credentials extracted from running container'
-          else
-            echo 'Server container not running, checking database container environment...' &&
-            OLD_DB_PASSWORD=\$(docker exec restaunax-db printenv POSTGRES_PASSWORD 2>/dev/null || echo '') &&
-            echo 'Database password extracted from database container'
-          fi &&
-          
-          if [ ! -z \"\$OLD_DB_PASSWORD\" ]; then
-            sed -i \"s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=\$OLD_DB_PASSWORD/\" .env &&
-            sed -i \"s|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:\$OLD_DB_PASSWORD@db:5432/restaunax|\" .env &&
-            echo 'Database password preserved'
-          fi &&
-          if [ ! -z \"\$OLD_JWT_ACCESS\" ]; then
-            sed -i \"s/^JWT_ACCESS_SECRET=.*/JWT_ACCESS_SECRET=\$OLD_JWT_ACCESS/\" .env &&
-            echo 'JWT access secret preserved'
-          fi &&
-          if [ ! -z \"\$OLD_JWT_REFRESH\" ]; then
-            sed -i \"s/^JWT_REFRESH_SECRET=.*/JWT_REFRESH_SECRET=\$OLD_JWT_REFRESH/\" .env &&
-            echo 'JWT refresh secret preserved'
-          fi
-        else
-          echo 'No existing restaunax-db container found, using new credentials'
-        fi &&
-        
-        echo 'Pulling latest images from registry...' &&
-        docker pull $UNRAID_SERVER:5000/restaunax-client:latest &&
-        docker pull $UNRAID_SERVER:5000/restaunax-server:latest &&
-        
-        echo 'Stopping existing Restaunax services...' &&
-        docker compose -f docker-compose.production.yml -p restaunax down || true &&
-        
-        echo 'Pruning old images to free space...' &&
-        docker image prune -f &&
-        
-        echo 'Starting Restaunax services...' &&
-        docker compose -f docker-compose.production.yml -p restaunax up -d &&
-        
-        echo 'Waiting for services to be ready...' &&
-        sleep 30 &&
-        
-        echo 'Checking service status...' &&
-        docker compose -f docker-compose.production.yml -p restaunax ps &&
-        
-        echo 'Verifying frontend accessibility...' &&
-        curl -f http://localhost:${FRONTEND_PORT} > /dev/null && echo 'Frontend is responding' || echo 'Frontend check failed' &&
-        
-        echo 'Verifying backend API...' &&
-        curl -f http://localhost:8081/api/health > /dev/null && echo 'Backend API is responding' || echo 'Backend API check failed' &&
-        
-        echo 'Restaunax deployment completed successfully!'
-      "
+    # Deploy on Unraid server - Setup and extract
+    - ssh $UNRAID_USER@$UNRAID_SERVER "mkdir -p /mnt/user/appdata/restaunax && cd /mnt/user/appdata/restaunax && tar -xzf /tmp/restaunax-deploy.tar.gz && rm /tmp/restaunax-deploy.tar.gz"
     
-    # Optional: Run post-deployment health checks
+    # Preserve existing credentials if database exists
+    - ssh $UNRAID_USER@$UNRAID_SERVER 'cd /mnt/user/appdata/restaunax && if docker ps -a --format "{{.Names}}" | grep -q "^restaunax-db$"; then echo "Preserving existing credentials..."; if docker ps --format "{{.Names}}" | grep -q "^restaunax-server$"; then OLD_DB_PASSWORD=$(docker exec restaunax-server printenv POSTGRES_PASSWORD 2>/dev/null || echo ""); OLD_JWT_ACCESS=$(docker exec restaunax-server printenv JWT_ACCESS_SECRET 2>/dev/null || echo ""); OLD_JWT_REFRESH=$(docker exec restaunax-server printenv JWT_REFRESH_SECRET 2>/dev/null || echo ""); else OLD_DB_PASSWORD=$(docker exec restaunax-db printenv POSTGRES_PASSWORD 2>/dev/null || echo ""); fi; if [ ! -z "$OLD_DB_PASSWORD" ]; then sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$OLD_DB_PASSWORD/" .env && sed -i "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:$OLD_DB_PASSWORD@db:5432/restaunax|" .env && echo "Database password preserved"; fi; if [ ! -z "$OLD_JWT_ACCESS" ]; then sed -i "s/^JWT_ACCESS_SECRET=.*/JWT_ACCESS_SECRET=$OLD_JWT_ACCESS/" .env && echo "JWT access secret preserved"; fi; if [ ! -z "$OLD_JWT_REFRESH" ]; then sed -i "s/^JWT_REFRESH_SECRET=.*/JWT_REFRESH_SECRET=$OLD_JWT_REFRESH/" .env && echo "JWT refresh secret preserved"; fi; else echo "Using new credentials"; fi'
+    
+    # Pull images and deploy
+    - ssh $UNRAID_USER@$UNRAID_SERVER "cd /mnt/user/appdata/restaunax && docker pull $UNRAID_SERVER:5000/restaunax-client:latest && docker pull $UNRAID_SERVER:5000/restaunax-server:latest && docker compose -f docker-compose.production.yml -p restaunax down && docker image prune -f && docker compose -f docker-compose.production.yml -p restaunax up -d"
+    
+    # Health checks and status
     - echo "Running post-deployment verification..."
-    - ssh $UNRAID_USER@$UNRAID_SERVER "
-        cd /mnt/user/appdata/restaunax &&
-        echo 'Final service status:' &&
-        docker compose -f docker-compose.production.yml -p restaunax ps &&
-        echo 'Container logs (last 10 lines):' &&
-        docker compose -f docker-compose.production.yml -p restaunax logs --tail=10
-      "
+    - ssh $UNRAID_USER@$UNRAID_SERVER "cd /mnt/user/appdata/restaunax && sleep 30 && docker compose -f docker-compose.production.yml -p restaunax ps"
+    - ssh $UNRAID_USER@$UNRAID_SERVER "curl -f http://localhost:${FRONTEND_PORT} > /dev/null && echo 'Frontend responding' || echo 'Frontend check failed'"
+    - ssh $UNRAID_USER@$UNRAID_SERVER "curl -f http://localhost:8081/api/health > /dev/null && echo 'Backend API responding' || echo 'Backend API check failed'"
       
   rules:
     - if: '$CI_COMMIT_BRANCH == "dev"'
