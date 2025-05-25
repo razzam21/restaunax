@@ -162,9 +162,27 @@ export const AIProvider = ({ children }) => {
       });
       
       if (response.data.success) {
-        const newJob = response.data.job;
-        setActiveJobs(prev => [...prev, newJob]);
-        return newJob;
+        // Create a job-like object for consistency with the UI
+        const optimizationResult = {
+          id: `menu_optimization_${Date.now()}`,
+          type: 'menu_optimization',
+          status: 'completed',
+          progress: 100,
+          result: response.data.optimization,
+          requestInfo: response.data.requestInfo,
+          performance: response.data.performance,
+          createdAt: new Date().toISOString()
+        };
+        
+        // Add to insights history immediately for instant feedback
+        setInsights(prev => [optimizationResult, ...prev]);
+        
+        // Refresh insights from server to get the real database entry
+        setTimeout(() => {
+          loadJobHistory();
+        }, 1000); // Small delay to ensure database write is complete
+        
+        return optimizationResult;
       } else {
         throw new Error(response.data.error || 'Failed to create menu optimization');
       }
@@ -175,7 +193,7 @@ export const AIProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [hasAccess, featureStatus.aiEnabled, accessToken]);
+  }, [hasAccess, featureStatus.aiEnabled, accessToken, loadJobHistory]);
 
   // Get job status
   const getJobStatus = useCallback(async (jobId) => {

@@ -33,6 +33,7 @@ import InsightsHistory from '../components/features/ai/InsightsHistory';
 import ActiveJobsList from '../components/features/ai/ActiveJobsList';
 import InsightViewer from '../components/features/ai/InsightViewer';
 import ForecastViewer from '../components/features/ai/ForecastViewer';
+import MenuOptimizationViewer from '../components/features/ai/MenuOptimizationViewer';
 
 const AIInsightsPage = () => {
   const theme = useTheme();
@@ -293,7 +294,15 @@ const AIInsightsPage = () => {
         />
       )}
       
-      {selectedInsight && selectedInsight.type !== 'demand_forecast' && (
+      {selectedInsight && selectedInsight.type === 'menu_optimization' && (
+        <MenuOptimizationViewer
+          optimization={selectedInsight}
+          open={!!selectedInsight}
+          onClose={() => setSelectedInsight(null)}
+        />
+      )}
+      
+      {selectedInsight && !['demand_forecast', 'menu_optimization'].includes(selectedInsight.type) && (
         <InsightViewer
           insight={selectedInsight}
           open={!!selectedInsight}
