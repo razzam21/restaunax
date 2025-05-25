@@ -83,6 +83,16 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1
 
+# Debug: Show what's actually in the container
+RUN echo "=== DEBUG: Contents of package.json ===" && \
+    cat package.json && \
+    echo "=== DEBUG: Scripts section ===" && \
+    grep -A 10 '"scripts"' package.json && \
+    echo "=== DEBUG: Files in /app ===" && \
+    ls -la /app && \
+    echo "=== DEBUG: Contents of scripts directory ===" && \
+    ls -la scripts/ || echo "scripts directory not found"
+
 # Use dumb-init for proper signal handling
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "src/server.js"]

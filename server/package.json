@@ -11,7 +11,7 @@
     "lint:fix": "eslint . --fix",
     "migrate:dev": "prisma migrate dev",
     "seed": "node prisma/seed.js",
-    "setup": "./scripts/setup.sh",
+    "setup": "echo 'Setup script disabled in production' && exit 0",
     "predev": "npm run setup"
   },
   "prisma": {
