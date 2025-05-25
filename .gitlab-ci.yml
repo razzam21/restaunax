@@ -138,28 +138,29 @@ deploy_to_unraid:
         mkdir -p /mnt/user/appdata/restaunax &&
         cd /mnt/user/appdata/restaunax &&
         
-        echo 'Backing up existing .env file if it exists...' &&
-        if [ -f .env ]; then
-          cp .env .env.old &&
-          echo 'Existing .env backed up to .env.old'
-        else
-          echo 'No existing .env file to backup'
-        fi &&
-        
         echo 'Extracting deployment package...' &&
         tar -xzf /tmp/restaunax-deploy.tar.gz &&
         rm /tmp/restaunax-deploy.tar.gz &&
         
-        echo 'Preserving existing database credentials if they exist...' &&
-        if [ -f .env.old ]; then
-          echo 'Found existing .env, preserving database and JWT credentials...' &&
-          OLD_DB_PASSWORD=\$(grep '^POSTGRES_PASSWORD=' .env.old | cut -d'=' -f2) &&
-          OLD_JWT_ACCESS=\$(grep '^JWT_ACCESS_SECRET=' .env.old | cut -d'=' -f2) &&
-          OLD_JWT_REFRESH=\$(grep '^JWT_REFRESH_SECRET=' .env.old | cut -d'=' -f2) &&
+        echo 'Checking for existing database container...' &&
+        if docker ps -a --format '{{.Names}}' | grep -q '^restaunax-db\$'; then
+          echo 'Existing restaunax-db container found, preserving database credentials...' &&
+          if docker ps --format '{{.Names}}' | grep -q '^restaunax-server\$'; then
+            echo 'Getting credentials from running restaunax-server container...' &&
+            OLD_DB_PASSWORD=\$(docker exec restaunax-server printenv POSTGRES_PASSWORD 2>/dev/null || echo '') &&
+            OLD_JWT_ACCESS=\$(docker exec restaunax-server printenv JWT_ACCESS_SECRET 2>/dev/null || echo '') &&
+            OLD_JWT_REFRESH=\$(docker exec restaunax-server printenv JWT_REFRESH_SECRET 2>/dev/null || echo '') &&
+            echo 'Credentials extracted from running container'
+          else
+            echo 'Server container not running, checking database container environment...' &&
+            OLD_DB_PASSWORD=\$(docker exec restaunax-db printenv POSTGRES_PASSWORD 2>/dev/null || echo '') &&
+            echo 'Database password extracted from database container'
+          fi &&
+          
           if [ ! -z \"\$OLD_DB_PASSWORD\" ]; then
             sed -i \"s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=\$OLD_DB_PASSWORD/\" .env &&
             sed -i \"s|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:\$OLD_DB_PASSWORD@db:5432/restaunax|\" .env &&
-            echo 'Database password preserved'
+            echo 'Database password preserved: \$OLD_DB_PASSWORD'
           fi &&
           if [ ! -z \"\$OLD_JWT_ACCESS\" ]; then
             sed -i \"s/^JWT_ACCESS_SECRET=.*/JWT_ACCESS_SECRET=\$OLD_JWT_ACCESS/\" .env &&
@@ -170,7 +171,7 @@ deploy_to_unraid:
             echo 'JWT refresh secret preserved'
           fi
         else
-          echo 'No existing .env found, using new credentials'
+          echo 'No existing restaunax-db container found, using new credentials'
         fi &&
         
         echo 'Pulling latest images from registry...' &&
