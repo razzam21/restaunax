@@ -12,6 +12,7 @@ import {
 const DeleteConfirmationDialog = ({ open, onClose, onConfirm, title, content }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   
   return (
     <Dialog
