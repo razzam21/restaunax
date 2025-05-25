@@ -5,7 +5,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
   TablePagination,
@@ -19,7 +18,9 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -27,11 +28,15 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import ResponsiveTable from '../../common/ResponsiveTable';
 import MenuItemForm from './MenuItemForm';
 import DeleteConfirmationDialog from '../../common/DeleteConfirmationDialog';
 import api from '../../../services/api';
 
 const MenuItemsList = ({ menuItems, categories, refreshData, isOwner }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
@@ -136,15 +141,27 @@ const MenuItemsList = ({ menuItems, categories, refreshData, isOwner }) => {
   
   return (
     <>
-      <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+      <Box sx={{ 
+        mb: 3, 
+        display: 'flex', 
+        flexWrap: 'wrap', 
+        gap: isMobile ? 1 : 2, 
+        alignItems: 'center',
+        flexDirection: isMobile ? 'column' : 'row',
+      }}>
         {/* Search field */}
         <TextField
           label="Search Items"
           variant="outlined"
-          size="small"
+          size={isMobile ? "medium" : "small"}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ flexGrow: 1, minWidth: '200px' }}
+          sx={{ 
+            flexGrow: isMobile ? 0 : 1, 
+            minWidth: isMobile ? '100%' : '200px',
+            width: isMobile ? '100%' : 'auto',
+          }}
+          fullWidth={isMobile}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -154,36 +171,51 @@ const MenuItemsList = ({ menuItems, categories, refreshData, isOwner }) => {
           }}
         />
         
-        {/* Category filter */}
-        <FormControl sx={{ minWidth: '200px' }} size="small">
-          <InputLabel>Category</InputLabel>
-          <Select
-            value={categoryFilter}
-            label="Category"
-            onChange={(e) => setCategoryFilter(e.target.value)}
+        <Box sx={{
+          display: 'flex',
+          gap: isMobile ? 1 : 2,
+          width: isMobile ? '100%' : 'auto',
+          flexDirection: isMobile ? 'column' : 'row',
+        }}>
+          {/* Category filter */}
+          <FormControl 
+            sx={{ minWidth: isMobile ? '100%' : '200px' }} 
+            size={isMobile ? "medium" : "small"}
+            fullWidth={isMobile}
           >
-            <MenuItem value="">All Categories</MenuItem>
-            {categories.map(category => (
-              <MenuItem key={category.id} value={category.id}>
-                {category.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        
-        {/* Status filter */}
-        <FormControl sx={{ minWidth: '150px' }} size="small">
-          <InputLabel>Status</InputLabel>
-          <Select
-            value={statusFilter}
-            label="Status"
-            onChange={(e) => setStatusFilter(e.target.value)}
+            <InputLabel>Category</InputLabel>
+            <Select
+              value={categoryFilter}
+              label="Category"
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <MenuItem value="">All Categories</MenuItem>
+              {categories.map(category => (
+                <MenuItem key={category.id} value={category.id}>
+                  {category.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          
+          {/* Status filter */}
+          <FormControl 
+            sx={{ minWidth: isMobile ? '100%' : '150px' }} 
+            size={isMobile ? "medium" : "small"}
+            fullWidth={isMobile}
           >
-            <MenuItem value="all">All Items</MenuItem>
-            <MenuItem value="active">Active Only</MenuItem>
-            <MenuItem value="inactive">Inactive Only</MenuItem>
-          </Select>
-        </FormControl>
+            <InputLabel>Status</InputLabel>
+            <Select
+              value={statusFilter}
+              label="Status"
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <MenuItem value="all">All Items</MenuItem>
+              <MenuItem value="active">Active Only</MenuItem>
+              <MenuItem value="inactive">Inactive Only</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
         
         {/* Add new item button */}
         <Button
@@ -191,13 +223,19 @@ const MenuItemsList = ({ menuItems, categories, refreshData, isOwner }) => {
           color="primary"
           startIcon={<AddIcon />}
           onClick={() => handleOpenForm()}
+          sx={{ 
+            minHeight: isMobile ? 48 : 'auto',
+            width: isMobile ? '100%' : 'auto',
+          }}
+          size={isMobile ? "medium" : "medium"}
+          fullWidth={isMobile}
         >
           Add Item
         </Button>
       </Box>
       
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }}>
+      <ResponsiveTable component={Paper}>
+        <Table>
           <TableHead>
             <TableRow>
               <TableCell>Name</TableCell>
@@ -279,7 +317,7 @@ const MenuItemsList = ({ menuItems, categories, refreshData, isOwner }) => {
             )}
           </TableBody>
         </Table>
-      </TableContainer>
+      </ResponsiveTable>
       
       <TablePagination
         rowsPerPageOptions={[5, 10, 25]}
@@ -297,6 +335,12 @@ const MenuItemsList = ({ menuItems, categories, refreshData, isOwner }) => {
         onClose={handleCloseForm}
         maxWidth="md"
         fullWidth
+        fullScreen={isMobile}
+        PaperProps={{
+          sx: { 
+            m: isMobile ? 0 : 2,
+          }
+        }}
       >
         <MenuItemForm 
           item={editItem}

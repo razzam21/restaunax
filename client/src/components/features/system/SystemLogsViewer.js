@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -6,7 +6,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
   TablePagination,
@@ -20,6 +19,8 @@ import {
   Alert,
   CircularProgress,
   Grid,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Error as ErrorIcon,
@@ -31,9 +32,12 @@ import {
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import ResponsiveTable from '../../common/ResponsiveTable';
 import api from '../../../services/api';
 
 function SystemLogsViewer() {
+  const theme = useTheme();
+  
   const [logs, setLogs] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -220,9 +224,8 @@ function SystemLogsViewer() {
         </Paper>
 
         {/* Logs Table */}
-        <Paper>
-          <TableContainer>
-            <Table>
+        <ResponsiveTable component={Paper}>
+          <Table>
               <TableHead>
                 <TableRow>
                   <TableCell>Level</TableCell>
@@ -304,7 +307,7 @@ function SystemLogsViewer() {
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
+          </ResponsiveTable>
 
           <TablePagination
             component="div"
@@ -315,7 +318,6 @@ function SystemLogsViewer() {
             onRowsPerPageChange={handleRowsPerPageChange}
             rowsPerPageOptions={[10, 25, 50, 100]}
           />
-        </Paper>
       </Box>
     </LocalizationProvider>
   );
