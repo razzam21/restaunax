@@ -74,12 +74,18 @@ COPY --chown=nginx-user:nginx-user nginx.conf /etc/nginx/nginx.conf
 
 # Create startup script to generate config files and start nginx
 RUN echo '#!/bin/sh' > /start.sh && \
-    echo 'echo "Starting container with REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:8081/api}"' >> /start.sh && \
+    echo 'echo "=== STARTUP SCRIPT EXECUTING ==="' >> /start.sh && \
+    echo 'echo "Container environment:"' >> /start.sh && \
+    echo 'env | grep REACT_APP' >> /start.sh && \
+    echo 'echo "REACT_APP_API_URL value: ${REACT_APP_API_URL:-UNSET}"' >> /start.sh && \
+    echo 'echo "Removing old config files..."' >> /start.sh && \
     echo 'rm -f /usr/share/nginx/html/config.js /usr/share/nginx/html/config-override.js' >> /start.sh && \
+    echo 'echo "Creating new config files..."' >> /start.sh && \
     echo 'echo "window.CONFIG = { API_URL: \"${REACT_APP_API_URL:-http://localhost:8081/api}\" };" > /usr/share/nginx/html/config.js' >> /start.sh && \
     echo 'echo "window.CONFIG = { API_URL: \"${REACT_APP_API_URL:-http://localhost:8081/api}\" };" > /usr/share/nginx/html/config-override.js' >> /start.sh && \
-    echo 'echo "Config files created with API URL: ${REACT_APP_API_URL:-http://localhost:8081/api}"' >> /start.sh && \
-    echo 'ls -la /usr/share/nginx/html/config*.js' >> /start.sh && \
+    echo 'echo "Config files created. Contents:"' >> /start.sh && \
+    echo 'cat /usr/share/nginx/html/config-override.js' >> /start.sh && \
+    echo 'echo "=== STARTING NGINX ==="' >> /start.sh && \
     echo 'exec nginx -g "daemon off;"' >> /start.sh && \
     chmod +x /start.sh
 
