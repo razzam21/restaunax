@@ -79,6 +79,7 @@ build_images:
     # Build client image (API URL will be set at runtime)
     - cd client
     - cp ../docker/client/nginx.conf ./nginx.conf
+    - cp ../docker/client/start.sh ./start.sh
     - docker build -f ../docker/client/Dockerfile --target production -t restaunax-client:latest .
     - cd ..
     
