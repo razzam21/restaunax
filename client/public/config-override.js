@@ -1,2 +1,2 @@
-// This file overrides the API URL for testing purposes
-window.API_URL_OVERRIDE = 'http://localhost:8081/api';
+// This file is dynamically generated at container startup
+// The actual content will be replaced by the Docker startup script
