@@ -69,10 +69,18 @@ build_images:
     - echo "Generated .env file configuration:"
     - grep -v "SECRET\|PASSWORD\|_KEY" .env | head -20 || true
     
-    # Build individual service images for production using Docker Bake
+    # Build individual service images for production using direct Docker builds
     - echo "Building Restaunax service images for production..."
-    - export DOCKER_TARGET=production
-    - COMPOSE_BAKE=true docker compose build --no-cache
+    
+    # Build server image directly
+    - cd server
+    - docker build -f ../docker/server/Dockerfile --target production -t restaunax-server:latest .
+    - cd ..
+    
+    # Build client image directly  
+    - cd client
+    - docker build -f ../docker/client/Dockerfile --target production -t restaunax-client:latest .
+    - cd ..
     
     # Tag images for registry
     - docker tag restaunax-client:latest $UNRAID_SERVER:5000/restaunax-client:latest
