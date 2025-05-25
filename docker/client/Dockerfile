@@ -14,7 +14,7 @@ RUN addgroup -g 1001 -S nodejs && \
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY client/package*.json ./
 
 # Install dependencies
 RUN npm ci --only=production && npm cache clean --force
@@ -26,7 +26,7 @@ FROM base AS development
 RUN npm ci && npm cache clean --force
 
 # Copy source code
-COPY --chown=nodejs:nodejs . .
+COPY --chown=nodejs:nodejs client/ .
 
 # Switch to non-root user
 USER nodejs
@@ -48,7 +48,7 @@ FROM base AS builder
 RUN npm ci && npm cache clean --force
 
 # Copy source code
-COPY --chown=nodejs:nodejs . .
+COPY --chown=nodejs:nodejs client/ .
 
 # Build the application
 RUN npm run build
@@ -68,7 +68,7 @@ RUN addgroup -g 1001 -S nginx-user && \
 COPY --from=builder /app/build /usr/share/nginx/html
 
 # Copy custom nginx configuration
-COPY --chown=nginx-user:nginx-user ../docker/client/nginx.conf /etc/nginx/nginx.conf
+COPY --chown=nginx-user:nginx-user docker/client/nginx.conf /etc/nginx/nginx.conf
 
 # Create nginx pid directory with correct permissions
 RUN mkdir -p /var/run/nginx && \
