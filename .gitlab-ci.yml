@@ -60,6 +60,7 @@ build_images:
     - sed -i "s/AI_ENABLED=false/AI_ENABLED=true/" .env
     - sed -i "s/OPENAI_ENABLED=false/OPENAI_ENABLED=true/" .env
     - sed -i "s/OPENAI_API_KEY=your-openai-api-key-here/OPENAI_API_KEY=${OPENAI_API_KEY}/" .env
+    - sed -i "s/OPENAI_TIMEOUT=30000/OPENAI_TIMEOUT=120000/" .env
     - sed -i "s/OLLAMA_ENABLED=false/OLLAMA_ENABLED=false/" .env
     - sed -i "s/AI_PRIMARY_ENGINE=ollama/AI_PRIMARY_ENGINE=openai/" .env
     

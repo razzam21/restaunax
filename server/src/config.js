@@ -45,7 +45,7 @@ module.exports = {
       enabled: process.env.OPENAI_ENABLED === 'true',
       apiKey: process.env.OPENAI_API_KEY,
       model: process.env.OPENAI_MODEL || 'gpt-4',
-      timeout: parseInt(process.env.OPENAI_TIMEOUT) || 30000,
+      timeout: parseInt(process.env.OPENAI_TIMEOUT) || 120000,
       maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 2000,
     },
   },
