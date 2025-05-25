@@ -12,6 +12,9 @@ const app = express();
 // Trust proxy for rate limiting and IP detection
 app.set('trust proxy', true);
 
+// Disable ETag generation to prevent 304 responses
+app.set('etag', false);
+
 // Middleware
 app.use(helmet()); // Security headers
 app.use(morgan('dev')); // HTTP request logger
