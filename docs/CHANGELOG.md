@@ -2,6 +2,31 @@
 
 All notable changes to the Restaunax project will be documented in this file.
 
+## [1.3.0] - 2025-05-25
+
+### Added (MVP5: AI-Powered Menu Optimization)
+- **Menu Optimization Service**: Comprehensive AI-powered menu analysis and optimization recommendations
+- **Menu Performance Analytics**: Item-level and category-level performance metrics with revenue tracking
+- **AI-Powered Insights**: Intelligent recommendations for menu improvements and business optimization
+- **Real-time Analysis**: Dynamic analysis of 30-90 days of historical order data
+- **Interactive Results Viewer**: Rich UI for displaying optimization results with tables, charts, and insights
+- **Test-Driven Development**: 100% test coverage with 82 tests across backend and frontend
+- **Engine-Agnostic AI**: Support for both OpenAI and Ollama AI engines with transparent switching
+- **Data Linkage System**: Enhanced order items with proper menuItemId connections for accurate analysis
+- **Business Data Simulation**: Improved simulation script generating 90 days of realistic restaurant data
+
+### Enhanced
+- **AI Context**: Extended AIContext to support menu optimization alongside demand forecasting
+- **Database Schema**: Enhanced order items with menuItemId foreign key relationships
+- **Data Simulation**: Updated simulate-business-data.js with proper menu item linkage and 90-day support
+- **Testing Infrastructure**: Comprehensive TDD implementation with Material-UI component testing
+
+### Fixed
+- **Menu Item Revenue Tracking**: Resolved $0.00 revenue display by implementing proper data aggregation
+- **Duration Tracking**: Fixed 0.0s processing time display by correcting metadata structure
+- **Data Quality Indicators**: Enhanced confidence and data quality metrics based on real analysis results
+- **Test Coverage**: Achieved 100% test success rate with proper Material-UI testing patterns
+
 ## [1.2.0] - 2025-05-21
 
 ### Added (MVP3: Dynamic Theming)

@@ -34,6 +34,12 @@ Restaunax is a real-time order management dashboard for restaurants. The system 
 - Material UI theme customization
 - Theme data stored with restaurants
 
+### AI & Analytics
+- **Demand Forecasting**: AI-powered demand prediction using historical order data
+- **Menu Optimization**: Comprehensive menu analysis with performance insights and recommendations
+- **Engine-Agnostic AI**: Support for OpenAI and Ollama with flexible AI engine configuration
+- **Actionable Insights**: Revenue analysis, trend identification, and strategic recommendations
+
 ### User Experience
 - Intuitive order creation interface with autocomplete
 - Form validation for required fields
@@ -246,6 +252,18 @@ The application comes with pre-seeded test users for different roles:
 - ✅ Theme data stored in database
 - ✅ Theme component in the header
 
+### MVP4: Reports & Analytics
+- ✅ Order reports with filtering and date ranges
+- ✅ Downloadable CSV/PDF reports
+- ✅ Revenue and performance analytics
+
+### MVP5: AI-Powered Features
+- ✅ **Demand Forecasting**: AI-powered demand prediction with configurable parameters
+- ✅ **Menu Optimization**: Comprehensive menu performance analysis and optimization recommendations
+- ✅ **AI Engine Abstraction**: Support for OpenAI and Ollama engines with transparent switching
+- ✅ **Historical Analysis**: Deep analysis using 90+ days of business data
+- ✅ **Real-time Insights**: Item performance, category analysis, and actionable recommendations
+
 ## Testing
 
 Restaunax includes comprehensive test coverage for both backend and frontend components.
@@ -260,6 +278,8 @@ Backend tests cover services, controllers, and API endpoints with a focus on:
 - API endpoint validation including error handling
 - Authentication and authorization tests
 - Theme system tests
+- AI service tests including menu optimization and demand forecasting
+- AI engine abstraction layer tests
 
 ```bash
 cd server
@@ -278,6 +298,8 @@ Frontend tests use React Testing Library to verify component behavior:
 - Component rendering tests verify UI elements
 - Authentication context and protected routes tests
 - Theme context tests
+- AI feature component tests including MenuOptimizationForm and ForecastViewer
+- AI context and integration tests
 
 ```bash
 cd client

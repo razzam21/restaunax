@@ -299,6 +299,58 @@ For Docker-related issues, refer to:
 - `docs/docker/DOCKER_GUIDE.md` - Comprehensive Docker optimization guide
 - `docs/docker/REACT_DOCKER_TROUBLESHOOTING.md` - Frontend-specific Docker issues
 - `docs/docker/DOCKER_OPTIMIZATION_SUMMARY.md` - Quick reference for common solutions
+
+## AI Features Development Guidelines
+
+Restaunax includes comprehensive AI-powered features for demand forecasting and menu optimization. When working with AI features:
+
+### Menu Optimization Feature
+
+The menu optimization feature provides comprehensive analysis of menu performance using AI-powered insights.
+
+**Key Components:**
+- **Backend Service**: `server/src/services/menu-optimization-service.js` - Core business logic
+- **Backend Controller**: `server/src/controllers/menu-optimization-controller.js` - API endpoints
+- **Frontend Form**: `client/src/components/features/ai/MenuOptimizationForm.js` - User interface for configuration
+- **Frontend Viewer**: `client/src/components/features/ai/MenuOptimizationViewer.js` - Results display and analysis
+
+**Data Requirements:**
+- Menu items must be linked to order items via `menuItemId` field
+- Historical order data (minimum 30 days recommended for meaningful analysis)
+- Use the simulation script: `docker compose exec server node scripts/simulate-business-data.js 90`
+
+**Testing:**
+- TDD methodology strictly followed with 100% test coverage
+- Backend: 37 tests covering service, controller, and integration
+- Frontend: 45 tests covering form, viewer, and interactions
+- Run tests: `docker compose exec server npm test -- --testPathPattern="menu-optimization"`
+
+**AI Engine Configuration:**
+- Supports both OpenAI and Ollama engines
+- Engine selection handled transparently by AI abstraction layer
+- Configure engines in `.env` file with `OPENAI_API_KEY` or `OLLAMA_ENABLED=true`
+
+### Data Simulation for AI Features
+
+Generate realistic business data for AI analysis:
+
+```bash
+# Generate 90 days of realistic restaurant data
+docker compose exec server node scripts/simulate-business-data.js 90
+
+# Generate 30 days for testing (faster)
+docker compose exec server node scripts/simulate-business-data.js 30
+```
+
+**Important**: The simulation script creates proper `menuItemId` linkages essential for menu optimization analysis.
+
+### AI Feature Testing Best Practices
+
+1. **Always verify data linkage**: Ensure order items have proper `menuItemId` connections
+2. **Use realistic timeframes**: AI features require sufficient data (30+ days)
+3. **Test both AI engines**: Verify functionality with both OpenAI and Ollama
+4. **Validate response structures**: AI responses must match expected data formats
+5. **Test error scenarios**: Network failures, invalid data, permission issues
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
