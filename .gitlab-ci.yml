@@ -13,6 +13,7 @@ variables:
   OLLAMA_URL: "http://10.13.0.254:11434"
   CORS_ORIGIN: "http://restaunax.turnersrus.com,https://restaunax.turnersrus.com"
   OLLAMA_MODEL: "deepseek-coder:1.3b"
+  PRODUCTION_API_URL: "https://restaunax.turnersrus.com/api"
 
 # Build all Docker images for the application
 build_images:
@@ -44,7 +45,7 @@ build_images:
     - sed -i "s|DATABASE_URL=postgresql://postgres:postgres@db:5432/restaunax|DATABASE_URL=postgresql://postgres:${DB_PASSWORD}@db:5432/restaunax|" .env
     
     # API and CORS configuration
-    - sed -i "s|REACT_APP_API_URL=http://localhost:8081/api|REACT_APP_API_URL=https://restaunax.turnersrus.com/api|" .env
+    - sed -i "s|REACT_APP_API_URL=http://localhost:8081/api|REACT_APP_API_URL=${PRODUCTION_API_URL}|" .env
     - sed -i "s|CORS_ORIGIN=http://localhost:3000|CORS_ORIGIN=${CORS_ORIGIN}|" .env
     
     # JWT Configuration - Generate secure random secrets
@@ -80,7 +81,7 @@ build_images:
     # Build client image directly with production API URL
     - cd client
     - cp ../docker/client/nginx.conf ./nginx.conf
-    - docker build -f ../docker/client/Dockerfile --target production --build-arg REACT_APP_API_URL=https://restaunax.turnersrus.com/api -t restaunax-client:latest .
+    - docker build -f ../docker/client/Dockerfile --target production --build-arg REACT_APP_API_URL=${PRODUCTION_API_URL} -t restaunax-client:latest .
     - cd ..
     
     # Tag images for registry

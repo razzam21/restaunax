@@ -101,6 +101,20 @@ git push origin dev
 # All secrets are dynamically generated using OpenSSL (512-bit JWT tokens)
 ```
 
+#### Configuration Variables
+
+**To change the production API URL or other deployment settings, edit `.gitlab-ci.yml` variables section:**
+
+```yaml
+variables:
+  FRONTEND_PORT: "3004"                    # Port for frontend container
+  PRODUCTION_API_URL: "https://restaunax.turnersrus.com/api"  # Production API endpoint
+  CORS_ORIGIN: "http://restaunax.turnersrus.com,https://restaunax.turnersrus.com"  # CORS origins
+  OLLAMA_URL: "http://10.13.0.254:11434"  # AI service endpoint
+```
+
+**IMPORTANT**: When changing `PRODUCTION_API_URL`, the domain must match one of the `CORS_ORIGIN` values.
+
 ## Important Data Models
 
 ### Order Schema
