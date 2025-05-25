@@ -13,8 +13,8 @@ networks:
 services:
   client:
     build:
-      context: ./client
-      dockerfile: ../docker/client/Dockerfile
+      context: .
+      dockerfile: ./docker/client/Dockerfile
       target: ${DOCKER_TARGET:-development}
     image: restaunax-client:latest
     ports:

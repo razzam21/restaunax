@@ -86,6 +86,21 @@ docker-compose exec backend npm run lint:fix
 docker-compose exec frontend npm run lint:fix
 ```
 
+### GitLab CI/CD Deployment
+
+```bash
+# GitLab pipeline deployment (automatic on dev branch push)
+# Builds production images and deploys to Unraid server
+# Automatically generates secure JWT tokens and database passwords
+
+# Manual pipeline trigger
+git push origin dev
+
+# View pipeline status in GitLab CI/CD interface
+# Pipeline includes build and deploy stages with health checks
+# All secrets are dynamically generated using OpenSSL (512-bit JWT tokens)
+```
+
 ## Important Data Models
 
 ### Order Schema

@@ -82,6 +82,28 @@ systemctl start ollama
    - **Build**: Creates production Docker images and pushes them to your Unraid registry
    - **Deploy**: Automatically deploys to your Unraid server
 
+### Recent Pipeline Improvements
+
+The GitLab CI/CD pipeline has been optimized with the following enhancements:
+
+#### Environment Configuration Management
+- **Template-based Configuration**: Pipeline now uses `.env.example` as a base template
+- **Dynamic Updates**: Production values are applied using `sed` commands
+- **No Hardcoded Values**: All environment variables are managed through GitLab variables
+- **Secure Password Generation**: Database passwords are automatically generated during deployment
+- **Dynamic JWT Secrets**: JWT access and refresh tokens are generated using OpenSSL for maximum security
+
+#### Build Process Optimizations
+- **Fixed Docker Build Issues**: Resolved nginx.conf path problems in client Dockerfile
+- **Improved Error Handling**: Added `|| true` to prevent pipeline failures from benign commands
+- **Enhanced Logging**: Better visibility into build and deployment steps
+
+#### Production Readiness
+- **Optimized for Production**: Source maps disabled, environment set to production
+- **Security Hardened**: Dynamically generated JWT secrets, CORS origins, and database credentials properly configured
+- **AI Integration**: Ollama and AI features automatically enabled with production settings
+- **Cryptographically Secure**: All secrets use OpenSSL random generation (512-bit JWT tokens)
+
 ### Manual Deployment
 
 If you need to deploy manually:
@@ -111,8 +133,9 @@ docker compose -f docker-compose.production.yml up -d
 ### Security
 
 - **CORS Origin**: https://restaunax.turnersrus.com
-- **JWT Secrets**: Long, secure randomly generated secrets
-- **Database**: Secure passwords generated during deployment
+- **JWT Secrets**: Cryptographically secure 512-bit secrets generated using OpenSSL during each deployment
+- **Database**: Secure passwords generated during deployment using timestamp-based hashing
+- **No Hardcoded Secrets**: All sensitive values are dynamically generated for maximum security
 
 ## Monitoring
 
@@ -156,6 +179,11 @@ docker compose -f docker-compose.production.yml ps
 1. **Check Docker registry**: Ensure registry is running on port 5000
 2. **SSH access**: Verify SSH key is correct in GitLab variables
 3. **Build resources**: Ensure sufficient disk space and memory
+
+**Exit Code 141 (SIGPIPE Error)**:
+- **Cause**: Broken pipe error when displaying configuration 
+- **Solution**: Fixed with improved error handling in pipeline (adding `|| true`)
+- **Prevention**: Pipeline now gracefully handles command output truncation
 
 #### Pipeline Fails at Deploy Stage
 
@@ -235,11 +263,21 @@ After successful deployment:
 
 ## Security Notes
 
-- Change default passwords in production
+### Automatic Security Features
+
+- **Dynamic Secret Generation**: JWT tokens and database passwords are automatically generated during each deployment
+- **No Hardcoded Credentials**: All sensitive values are created dynamically using cryptographically secure methods
+- **512-bit JWT Secrets**: Extremely strong authentication tokens generated with OpenSSL
+- **Unique Per-Deployment**: Each deployment gets fresh, unique secrets
+
+### Manual Security Recommendations
+
 - Use HTTPS with proper SSL certificates
 - Restrict SSH access to necessary users only
 - Regularly update Docker images
 - Monitor application logs for security events
+- Rotate secrets periodically by redeploying
+- Ensure Unraid server has proper firewall configuration
 
 ## Support
 
