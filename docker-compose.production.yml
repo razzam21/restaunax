@@ -77,11 +77,11 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       # AI Configuration
       - AI_ENABLED=${AI_ENABLED:-true}
-      - OLLAMA_ENABLED=${OLLAMA_ENABLED:-true}
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
-      - OLLAMA_MODEL=${OLLAMA_MODEL}
-      - OLLAMA_TIMEOUT=${OLLAMA_TIMEOUT:-60000}
-      - AI_PRIMARY_ENGINE=${AI_PRIMARY_ENGINE:-ollama}
+      - OPENAI_ENABLED=${OPENAI_ENABLED:-true}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_TIMEOUT=${OPENAI_TIMEOUT:-120000}
+      - OLLAMA_ENABLED=${OLLAMA_ENABLED:-false}
+      - AI_PRIMARY_ENGINE=${AI_PRIMARY_ENGINE:-openai}
     restart: unless-stopped
     deploy:
       resources:
