@@ -102,7 +102,7 @@ RUN mkdir -p /var/run/nginx && \
     chown -R nginx-user:nginx-user /var/run/nginx && \
     chown -R nginx-user:nginx-user /var/cache/nginx && \
     chown -R nginx-user:nginx-user /usr/share/nginx/html && \
-    chown nginx-user:nginx-user /start.sh
+    chown nginx-user:nginx-user /docker-entrypoint.sh
 
 # Switch to non-root user
 USER nginx-user
