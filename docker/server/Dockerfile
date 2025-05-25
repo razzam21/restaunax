@@ -41,8 +41,10 @@ RUN mkdir -p /app/logs && \
 # Set Prisma binary target for Alpine
 ENV PRISMA_BINARY_TARGET=linux-musl
 
-# Generate Prisma client
-RUN npx prisma generate
+# Generate Prisma client (check schema exists first for debugging)
+RUN ls -la prisma/ || echo "No prisma directory found" && \
+    ls -la prisma/schema.prisma || echo "No schema.prisma found" && \
+    npx prisma generate
 
 # Switch to non-root user
 USER nodejs
