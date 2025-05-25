@@ -17,8 +17,12 @@ export const MenuProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       console.log('Fetching menu items with category:', category || 'all');
-      const data = await menuService.getMenuItems(category);
-      console.log('Menu items fetched:', data);
+      const response = await menuService.getMenuItems(category);
+      console.log('Menu items response:', response);
+      
+      // Extract items from the response object
+      const data = response?.items || [];
+      console.log('Menu items extracted:', data);
       
       // Verify alphabetical sorting
       if (data && data.length > 0) {
@@ -28,7 +32,7 @@ export const MenuProvider = ({ children }) => {
         });
       }
       
-      setMenuItems(data || []);
+      setMenuItems(data);
       
       // Extract unique categories
       if (!category && data?.length > 0) {

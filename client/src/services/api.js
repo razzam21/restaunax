@@ -148,7 +148,7 @@ export const menuService = {
   getMenuItems: async (category) => {
     try {
       const params = category ? { category } : {};
-      const response = await api.get('/menu-items', { params });
+      const response = await api.get('/menu/items', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching menu items:', error);
@@ -159,7 +159,7 @@ export const menuService = {
   // Get a single menu item by ID
   getMenuItemById: async (id) => {
     try {
-      const response = await api.get(`/menu-items/${id}`);
+      const response = await api.get(`/menu/items/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching menu item ${id}:`, error);
