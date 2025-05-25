@@ -14,7 +14,7 @@ services:
   client:
     image: ${UNRAID_SERVER:-localhost}:5000/restaunax-client:latest
     container_name: restaunax-client
-    entrypoint: ["/start.sh"]
+    command: ["sh", "/start.sh"]
     ports:
       - "${CLIENT_PORT:-3004}:3000"
     networks:
