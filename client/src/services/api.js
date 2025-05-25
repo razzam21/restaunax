@@ -1,11 +1,15 @@
 import axios from 'axios';
 import { shouldAttemptRefresh, clearAuthData } from '../utils/tokenUtils';
 
-// Make sure we include /api in the URL
-// Check for window.API_URL_OVERRIDE (for debugging)
-const API_URL = (typeof window !== 'undefined' && window.API_URL_OVERRIDE) || 
-                process.env.REACT_APP_API_URL || 
-                'http://localhost:8081/api';
+// Get API URL from runtime config (loaded by /config.js) or fallback to environment/default
+const getApiUrl = () => {
+  if (typeof window !== 'undefined' && window.CONFIG && window.CONFIG.API_URL) {
+    return window.CONFIG.API_URL;
+  }
+  return process.env.REACT_APP_API_URL || 'http://localhost:8081/api';
+};
+
+const API_URL = getApiUrl();
 
 console.log('Using API URL:', API_URL);
 

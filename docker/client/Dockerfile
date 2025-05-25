@@ -50,9 +50,7 @@ RUN npm ci && npm cache clean --force
 # Copy source code
 COPY --chown=nodejs:nodejs . .
 
-# Accept build arguments for React environment variables
-ARG REACT_APP_API_URL
-ENV REACT_APP_API_URL=$REACT_APP_API_URL
+# No build-time environment variables needed - using runtime config
 
 # Build the application
 RUN npm run build
@@ -60,8 +58,9 @@ RUN npm run build
 # Stage 4: Production build with nginx
 FROM nginx:alpine AS production
 
-# Install security updates
+# Install security updates and envsubst for environment variable substitution
 RUN apk update && apk upgrade && \
+    apk add --no-cache gettext && \
     rm -rf /var/cache/apk/*
 
 # Create non-root user for nginx
@@ -72,7 +71,11 @@ RUN addgroup -g 1001 -S nginx-user && \
 COPY --from=builder /app/build /usr/share/nginx/html
 
 # Copy custom nginx configuration
-COPY --chown=nginx-user:nginx-user nginx.conf /etc/nginx/nginx.conf
+COPY --chown=nginx-user:nginx-user nginx.conf /etc/nginx/nginx.conf.template
+
+# Create startup script to substitute environment variables
+RUN echo '#!/bin/sh\nenvsubst "$REACT_APP_API_URL" < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf\nexec nginx -g "daemon off;"' > /start.sh && \
+    chmod +x /start.sh
 
 # Create nginx pid directory with correct permissions
 RUN mkdir -p /var/run/nginx && \
@@ -89,4 +92,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["/start.sh"]
