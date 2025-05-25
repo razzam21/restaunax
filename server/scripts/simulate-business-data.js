@@ -16,9 +16,11 @@ const { v4: uuidv4 } = require('uuid');
 const prisma = new PrismaClient();
 
 // Configuration
-const SIMULATION_DAYS = 60; // 2 months
+const SIMULATION_DAYS = process.argv[2] ? parseInt(process.argv[2]) : 60; // Default 2 months, but accept command line argument
 const END_DATE = new Date();
 const START_DATE = new Date(END_DATE.getTime() - (SIMULATION_DAYS * 24 * 60 * 60 * 1000));
+
+console.log(`Simulating ${SIMULATION_DAYS} days of business data from ${START_DATE.toDateString()} to ${END_DATE.toDateString()}`);
 
 // Restaurant profiles
 const RESTAURANT_PROFILES = {
@@ -143,36 +145,39 @@ function generateHourlyOrders(restaurantId, date, hour) {
 }
 
 /**
- * Generate order items based on restaurant profile
+ * Generate order items based on restaurant profile and actual menu items
  */
-function generateOrderItems(restaurantId) {
-  const profile = RESTAURANT_PROFILES[restaurantId];
+async function generateOrderItems(restaurantId, menuItemsCache) {
+  // Use cached menu items if provided, otherwise fetch from database
+  let menuItems = menuItemsCache;
+  if (!menuItems) {
+    menuItems = await prisma.menuItem.findMany({
+      where: { restaurantId, isActive: true }
+    });
+  }
+  
+  if (menuItems.length === 0) {
+    throw new Error(`No menu items found for restaurant ${restaurantId}`);
+  }
+  
   const numItems = randomInRange(1, 4);
   const items = [];
   let total = 0;
   
   for (let i = 0; i < numItems; i++) {
-    // Select item based on popularity
-    const rand = Math.random();
-    let cumulativeProbability = 0;
-    let selectedItem = profile.popularItems[0];
-    
-    for (const item of profile.popularItems) {
-      cumulativeProbability += item.popularity;
-      if (rand <= cumulativeProbability) {
-        selectedItem = item;
-        break;
-      }
-    }
+    // Select random menu item (weighted towards first items for consistency with popular items pattern)
+    const itemIndex = Math.floor(Math.random() * Math.min(menuItems.length, 6)); // Favor first 6 items
+    const selectedMenuItem = menuItems[itemIndex];
     
     const quantity = randomInRange(1, 2);
-    const itemTotal = selectedItem.price * quantity;
+    const itemTotal = selectedMenuItem.price * quantity;
     
     items.push({
       id: uuidv4(),
-      name: selectedItem.name,
+      name: selectedMenuItem.name,
       quantity,
-      price: selectedItem.price
+      price: selectedMenuItem.price,
+      menuItemId: selectedMenuItem.id // Link to actual menu item
     });
     
     total += itemTotal;
@@ -186,6 +191,16 @@ function generateOrderItems(restaurantId) {
  */
 async function generateDayOrders(restaurantId, date) {
   console.log(`Generating orders for ${RESTAURANT_PROFILES[restaurantId].name} on ${date.toDateString()}`);
+  
+  // Cache menu items for this restaurant to avoid repeated database queries
+  const menuItems = await prisma.menuItem.findMany({
+    where: { restaurantId, isActive: true }
+  });
+  
+  if (menuItems.length === 0) {
+    console.warn(`No menu items found for restaurant ${restaurantId}, skipping order generation`);
+    return { orders: [], hourlyMetrics: {}, dailyMetrics: {} };
+  }
   
   const dayOrders = [];
   const hourlyMetrics = {};
@@ -206,7 +221,7 @@ async function generateDayOrders(restaurantId, date) {
       const orderTime = new Date(date);
       orderTime.setHours(hour, randomInRange(0, 59), randomInRange(0, 59));
       
-      const { items, total } = generateOrderItems(restaurantId);
+      const { items, total } = await generateOrderItems(restaurantId, menuItems);
       
       const order = {
         id: uuidv4(),
@@ -403,6 +418,7 @@ async function runSimulation() {
                   name: item.name,
                   quantity: item.quantity,
                   price: item.price,
+                  menuItemId: item.menuItemId, // Link to menu item for analysis
                   createdAt: order.createdAt,
                   updatedAt: order.updatedAt
                 }))
