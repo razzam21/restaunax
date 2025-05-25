@@ -72,12 +72,12 @@ COPY --from=builder /app/build /usr/share/nginx/html
 # Copy custom nginx configuration
 COPY --chown=nginx-user:nginx-user nginx.conf /etc/nginx/nginx.conf
 
-# Create startup script to generate config.js and start nginx
+# Create startup script to generate config files and start nginx
 RUN echo '#!/bin/sh' > /start.sh && \
-    echo 'echo "Starting container with REACT_APP_API_URL: ${REACT_APP_API_URL:-/api}"' >> /start.sh && \
+    echo 'echo "Starting container with REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:8081/api}"' >> /start.sh && \
     echo 'echo "window.CONFIG = { API_URL: \"${REACT_APP_API_URL:-/api}\" };" > /usr/share/nginx/html/config.js' >> /start.sh && \
-    echo 'echo "Created config.js with contents:"' >> /start.sh && \
-    echo 'cat /usr/share/nginx/html/config.js' >> /start.sh && \
+    echo 'echo "window.API_URL_OVERRIDE = \"${REACT_APP_API_URL:-http://localhost:8081/api}\";" > /usr/share/nginx/html/config-override.js' >> /start.sh && \
+    echo 'echo "Created config files with API URL: ${REACT_APP_API_URL:-http://localhost:8081/api}"' >> /start.sh && \
     echo 'exec nginx -g "daemon off;"' >> /start.sh && \
     chmod +x /start.sh
 
