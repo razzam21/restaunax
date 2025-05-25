@@ -13,7 +13,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
   Paper,
@@ -21,7 +20,10 @@ import {
   Alert,
   IconButton,
   Tooltip,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
+import ResponsiveTable from '../../common/ResponsiveTable';
 import {
   Close as CloseIcon,
   TrendingUp as TrendingUpIcon,
@@ -38,6 +40,9 @@ import { useAI } from '../../../contexts/AIContext';
 const ForecastViewer = ({ forecast, open, onClose }) => {
   const { deleteInsight, lockInsight, unlockInsight, loading } = useAI();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   
   if (!forecast || !open) return null;
 
@@ -139,18 +144,28 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
       onClose={onClose}
       maxWidth="lg"
       fullWidth
+      fullScreen={isMobile}
       PaperProps={{
-        sx: { minHeight: '70vh' }
+        sx: { 
+          minHeight: isMobile ? '100vh' : isTablet ? '80vh' : '70vh',
+          m: isMobile ? 0 : isTablet ? 1 : 2,
+        }
       }}
     >
-      <DialogTitle>
-        <Box display="flex" alignItems="center" gap={2}>
+      <DialogTitle sx={{ pb: isMobile ? 1 : isTablet ? 1.5 : 2 }}>
+        <Box display="flex" alignItems="center" gap={isMobile ? 1 : isTablet ? 1.5 : 2}>
           <TrendingUpIcon color="primary" />
           <Box flex={1}>
-            <Typography variant="h6">
+            <Typography variant={isMobile ? "h6" : "h6"}>
               Demand Forecast Results
             </Typography>
-            <Box display="flex" alignItems="center" gap={1} mt={1}>
+            <Box 
+              display="flex" 
+              alignItems="center" 
+              gap={isMobile ? 0.5 : isTablet ? 0.75 : 1} 
+              mt={1}
+              flexWrap="wrap"
+            >
               <Chip 
                 label="Demand Forecast" 
                 size="small" 
@@ -174,13 +189,14 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
               )}
             </Box>
           </Box>
-          <Box display="flex" gap={1}>
+          <Box display="flex" gap={isMobile ? 0.5 : isTablet ? 0.75 : 1}>
             {/* Lock/Unlock Button */}
             <Tooltip title={isLocked(forecast) ? "Unlock Insight" : "Lock Insight"}>
               <IconButton
                 onClick={handleLockToggle}
                 disabled={loading}
                 color={isLocked(forecast) ? "warning" : "default"}
+                size={isMobile ? "small" : isTablet ? "small" : "medium"}
               >
                 {isLocked(forecast) ? <LockIcon /> : <LockOpenIcon />}
               </IconButton>
@@ -193,6 +209,7 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
                   onClick={() => setDeleteConfirmOpen(true)}
                   disabled={loading}
                   color="error"
+                  size={isMobile ? "small" : "medium"}
                 >
                   <DeleteIcon />
                 </IconButton>
@@ -201,7 +218,10 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
 
             {/* Close Button */}
             <Tooltip title="Close">
-              <IconButton onClick={onClose}>
+              <IconButton 
+                onClick={onClose}
+                size={isMobile ? "small" : "medium"}
+              >
                 <CloseIcon />
               </IconButton>
             </Tooltip>
@@ -220,16 +240,19 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
 
         {/* Summary Metrics */}
         {summary && Object.keys(summary).length > 0 && (
-          <Box mb={4}>
+          <Box mb={isMobile ? 3 : 4}>
             <Typography variant="h6" gutterBottom>
               <AssessmentIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
               Forecast Summary
             </Typography>
-            <Grid container spacing={3}>
+            <Grid container spacing={isMobile ? 2 : 3}>
               <Grid item xs={12} sm={6} md={3}>
                 <Card variant="outlined">
-                  <CardContent sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" color="primary">
+                  <CardContent sx={{ 
+                    textAlign: 'center',
+                    py: isMobile ? 2 : 3,
+                  }}>
+                    <Typography variant={isMobile ? "h5" : "h4"} color="primary">
                       {summary.total_predicted_orders || 0}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -240,8 +263,11 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
                 <Card variant="outlined">
-                  <CardContent sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" color="success.main">
+                  <CardContent sx={{ 
+                    textAlign: 'center',
+                    py: isMobile ? 2 : 3,
+                  }}>
+                    <Typography variant={isMobile ? "h5" : "h4"} color="success.main">
                       {formatCurrency(summary.total_predicted_revenue)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -252,8 +278,11 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
                 <Card variant="outlined">
-                  <CardContent sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" color="info.main">
+                  <CardContent sx={{ 
+                    textAlign: 'center',
+                    py: isMobile ? 2 : 3,
+                  }}>
+                    <Typography variant={isMobile ? "h5" : "h4"} color="info.main">
                       {formatConfidence(confidence)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -264,8 +293,11 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
                 <Card variant="outlined">
-                  <CardContent sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" color="warning.main">
+                  <CardContent sx={{ 
+                    textAlign: 'center',
+                    py: isMobile ? 2 : 3,
+                  }}>
+                    <Typography variant={isMobile ? "h5" : "h4"} color="warning.main">
                       {summary.peak_day || 'N/A'}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -280,9 +312,9 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
 
         {/* Trends and Growth */}
         {trends && Object.keys(trends).length > 0 && (
-          <Box mb={4}>
+          <Box mb={isMobile ? 3 : 4}>
             <Typography variant="h6" gutterBottom>Trends & Insights</Typography>
-            <Grid container spacing={2}>
+            <Grid container spacing={isMobile ? 1 : 2}>
               {trends.expectedGrowth && (
                 <Grid item xs={12} sm={6}>
                   <Typography variant="body2" color="text.secondary">
@@ -296,7 +328,7 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       Seasonal Factors:
                     </Typography>
-                    <Box display="flex" gap={1} flexWrap="wrap">
+                    <Box display="flex" gap={0.5} flexWrap="wrap">
                       {trends.seasonalFactors.map((factor, index) => (
                         <Chip
                           key={index}
@@ -316,7 +348,7 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       Risk Factors:
                     </Typography>
-                    <Box display="flex" gap={1} flexWrap="wrap">
+                    <Box display="flex" gap={0.5} flexWrap="wrap">
                       {trends.riskFactors.map((factor, index) => (
                         <Chip
                           key={index}
@@ -341,7 +373,7 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
             Daily Predictions
           </Typography>
           {predictions.length > 0 ? (
-            <TableContainer component={Paper} variant="outlined">
+            <ResponsiveTable component={Paper} variant="outlined">
               <Table size="small">
                 <TableHead>
                   <TableRow>
@@ -370,7 +402,7 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
                   ))}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </ResponsiveTable>
           ) : (
             <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
               No forecast data available
@@ -415,7 +447,7 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
         {/* Request Information */}
         <Box>
           <Typography variant="h6" gutterBottom>Request Details</Typography>
-          <Grid container spacing={2}>
+          <Grid container spacing={isMobile ? 1 : 2}>
             <Grid item xs={12} sm={6}>
               <Typography variant="body2" color="text.secondary">
                 <strong>Forecast Period:</strong> {formatDate(requestInfo?.startDate)} - {formatDate(requestInfo?.endDate)}
@@ -450,8 +482,16 @@ const ForecastViewer = ({ forecast, open, onClose }) => {
         </Box>
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={onClose} startIcon={<CloseIcon />}>
+      <DialogActions sx={{ 
+        px: isMobile ? 2 : 3,
+        py: isMobile ? 1.5 : 2,
+      }}>
+        <Button 
+          onClick={onClose} 
+          startIcon={<CloseIcon />}
+          size={isMobile ? "medium" : "medium"}
+          sx={{ minHeight: isMobile ? 48 : 36 }}
+        >
           Close
         </Button>
       </DialogActions>
