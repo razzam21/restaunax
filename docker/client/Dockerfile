@@ -50,6 +50,10 @@ RUN npm ci && npm cache clean --force
 # Copy source code
 COPY --chown=nodejs:nodejs . .
 
+# Accept build arguments for React environment variables
+ARG REACT_APP_API_URL
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
+
 # Build the application
 RUN npm run build
 

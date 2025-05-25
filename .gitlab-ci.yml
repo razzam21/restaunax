@@ -77,10 +77,10 @@ build_images:
     - docker build -f ../docker/server/Dockerfile --target production -t restaunax-server:latest .
     - cd ..
     
-    # Build client image directly  
+    # Build client image directly with API URL
     - cd client
     - cp ../docker/client/nginx.conf ./nginx.conf
-    - docker build -f ../docker/client/Dockerfile --target production -t restaunax-client:latest .
+    - docker build -f ../docker/client/Dockerfile --target production --build-arg REACT_APP_API_URL=https://restaunax.turnersrus.com/api -t restaunax-client:latest .
     - cd ..
     
     # Tag images for registry
