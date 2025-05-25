@@ -1,8 +1,6 @@
 const express = require('express');
 const {
-  // createMenuOptimization,
   // getJobStatus,
-  // getMenuOptimization,
   getInsightsHistory,
   getFeatureStatus,
   deleteInsight,
@@ -15,6 +13,10 @@ const {
   getServiceStatus,
   getDataQuality,
 } = require('../controllers/demand-forecast-controller');
+const {
+  createMenuOptimization,
+  getServiceStatus: getMenuOptimizationServiceStatus,
+} = require('../controllers/menu-optimization-controller');
 const { requireAuth } = require('../middleware/auth');
 const { validateInsightRequest } = require('../middleware/validation');
 
@@ -54,16 +56,15 @@ router.get('/demand-forecast/data-quality/:restaurantId',
 );
 
 // Menu optimization
-// router.post('/menu-optimization', 
-//   authenticateToken, 
-//   validateInsightRequest('menu_optimization'), 
-//   createMenuOptimization
-// );
+router.post('/menu-optimization', 
+  requireAuth, 
+  createMenuOptimization
+);
 
-// router.get('/menu-optimization/:jobId', 
-//   authenticateToken, 
-//   getMenuOptimization
-// );
+router.get('/menu-optimization-status', 
+  requireAuth, 
+  getMenuOptimizationServiceStatus
+);
 
 // Insights history
 router.get('/history', requireAuth, getInsightsHistory);
