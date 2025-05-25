@@ -10,5 +10,6 @@ echo "window.CONFIG = { API_URL: \"${REACT_APP_API_URL:-http://localhost:8081/ap
 echo "Config file created:"
 cat /usr/share/nginx/html/config-override.js
 
-echo "=== STARTING NGINX ==="
-exec nginx -g "daemon off;"
+echo "=== CALLING NGINX ENTRYPOINT ==="
+# Call the original nginx entrypoint with nginx daemon off
+exec /docker-entrypoint.sh nginx -g "daemon off;"
