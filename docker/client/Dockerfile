@@ -68,7 +68,7 @@ RUN addgroup -g 1001 -S nginx-user && \
 COPY --from=builder /app/build /usr/share/nginx/html
 
 # Copy custom nginx configuration
-COPY --chown=nginx-user:nginx-user ../docker/client/nginx.conf /etc/nginx/nginx.conf
+COPY --chown=nginx-user:nginx-user nginx.conf /etc/nginx/nginx.conf
 
 # Create nginx pid directory with correct permissions
 RUN mkdir -p /var/run/nginx && \

@@ -79,6 +79,7 @@ build_images:
     
     # Build client image directly  
     - cd client
+    - cp ../docker/client/nginx.conf ./nginx.conf
     - docker build -f ../docker/client/Dockerfile --target production -t restaunax-client:latest .
     - cd ..
     
