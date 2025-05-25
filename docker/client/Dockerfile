@@ -72,25 +72,30 @@ COPY --from=builder /app/build /usr/share/nginx/html
 # Copy custom nginx configuration
 COPY --chown=nginx-user:nginx-user nginx.conf /etc/nginx/nginx.conf
 
-# Create startup script to generate config files and start nginx
-COPY <<EOF /start.sh
+# Use envsubst for environment variable substitution
+RUN apk add --no-cache gettext
+
+# Create template for config file
+RUN echo 'window.CONFIG = { API_URL: "${REACT_APP_API_URL}" };' > /usr/share/nginx/html/config.js.template
+
+# Create entrypoint script
+COPY <<EOF /docker-entrypoint.sh
 #!/bin/sh
-echo "=== STARTUP SCRIPT EXECUTING ==="
-echo "Container environment:"
-env | grep REACT_APP || echo "No REACT_APP variables found"
-echo "REACT_APP_API_URL value: \${REACT_APP_API_URL:-UNSET}"
-echo "Removing old config files..."
-rm -f /usr/share/nginx/html/config.js /usr/share/nginx/html/config-override.js
-echo "Creating new config files..."
-echo "window.CONFIG = { API_URL: \"\${REACT_APP_API_URL:-http://localhost:8081/api}\" };" > /usr/share/nginx/html/config.js
-echo "window.CONFIG = { API_URL: \"\${REACT_APP_API_URL:-http://localhost:8081/api}\" };" > /usr/share/nginx/html/config-override.js
-echo "Config files created. Contents:"
+echo "=== ENTRYPOINT SCRIPT EXECUTING ==="
+echo "REACT_APP_API_URL: \${REACT_APP_API_URL:-UNSET}"
+
+# Substitute environment variables in config template
+envsubst < /usr/share/nginx/html/config.js.template > /usr/share/nginx/html/config.js
+envsubst < /usr/share/nginx/html/config.js.template > /usr/share/nginx/html/config-override.js
+
+echo "Config file created:"
 cat /usr/share/nginx/html/config-override.js
+
 echo "=== STARTING NGINX ==="
 exec nginx -g "daemon off;"
 EOF
 
-RUN chmod +x /start.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # Create nginx pid directory with correct permissions
 RUN mkdir -p /var/run/nginx && \
@@ -108,4 +113,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
 
-CMD ["/start.sh"]
+CMD ["/docker-entrypoint.sh"]
