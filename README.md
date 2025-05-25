@@ -391,6 +391,94 @@ Complete documentation is available in the `docs/` directory:
 
 ---
 
+## TODO - Upcoming Features
+
+The following features are planned for future releases:
+
+### 📊 Reports Enhancement
+- **Add the remaining reports**: Implement additional report types beyond the current order and revenue reports
+  - Staff performance reports
+  - Customer frequency analysis
+  - Peak hours analysis
+  - Menu item popularity trends
+
+### 🤖 AI Configuration Display
+- **Show AI configuration in features section**: Display current AI engine settings in the user interface
+  - Show which AI engine is active (OpenAI, Ollama, or disabled)
+  - Display model information (e.g., "GPT-4", "deepseek-coder:1.3b")
+  - Show engine status and connectivity
+  - **Note**: Sensitive details like API keys will not be displayed for security
+
+### 💰 AI Cost Tracking
+- **Add ability to track costs to each report**: Implement cost tracking for AI-generated reports
+  - Track token usage per AI operation
+  - Calculate costs based on AI model and engine used
+  - Display cost breakdown per report type
+  - Historical cost tracking and analytics
+  - Budget alerts and cost optimization suggestions
+
+### 📦 Order Management & Archival
+- **Auto-archive setting for orders**: Implement automatic order archiving system
+  - Configurable auto-archive timeframes (30, 60, 90 days, or custom)
+  - Automatic status change from active to archived based on age
+  - Preserve order data while removing from active order lists
+  - Admin settings to configure archive policies per restaurant
+
+- **Manual archive setting for orders**: Allow manual order archiving
+  - Archive individual orders or bulk archive by date range
+  - Archive orders by status (e.g., all completed orders older than X days)
+  - Restore archived orders if needed
+  - Archive management interface for administrators
+
+- **Order deletion system**: Secure order deletion with proper safeguards
+  - Soft delete with recovery period (e.g., 30-day recovery window)
+  - Hard delete with admin confirmation and audit logging
+  - Cascade delete handling for related order items and audit logs
+  - Role-based permissions (only owners can delete orders)
+
+### 💰 Refunds & Comps Management
+- **Refund tracking system**: Comprehensive refund and compensation tracking
+  - Full order refunds with reason codes (customer complaint, kitchen error, etc.)
+  - Partial refunds for individual items within an order
+  - Refund amount tracking and financial reporting
+  - Integration with original payment method information
+
+- **Comping (complimentary) system**: Track complimentary orders and items
+  - Comp entire orders with manager/owner approval
+  - Comp individual items within an order
+  - Reason code tracking (customer satisfaction, promotional, staff meal, etc.)
+  - Financial impact tracking for comp'd items
+
+- **Financial tracking and reporting**: Monitor refunds and comps impact
+  - Daily/weekly/monthly refund and comp reports
+  - Track refund/comp trends by staff member, reason, or time period
+  - Calculate net revenue after refunds and comps
+  - Alert systems for excessive refunds or comps
+
+### 📱 Responsive Design Testing
+- **Verify responsive nature on different screen sizes with tests**: Implement automated responsive design testing
+  - Automated screenshot testing across multiple viewport sizes
+    - Mobile: 360x640, 375x667, 414x896 (iPhone sizes)
+    - Tablet: 768x1024, 834x1112, 1024x1366 (iPad sizes)  
+    - Desktop: 1280x720, 1440x900, 1920x1080 (common desktop sizes)
+  - Visual regression testing to catch layout breaking changes
+  - Component-level responsive testing for critical UI elements
+    - Order forms, navigation menus, data tables, modal dialogs
+    - Ensure touch targets are appropriately sized (44px minimum)
+    - Verify text readability and button accessibility on small screens
+  - Cross-browser responsive testing (Chrome, Firefox, Safari, Edge)
+  - Integration with CI/CD pipeline for automated regression detection
+  - Test reports with before/after screenshots for layout changes
+  - Performance testing on different screen sizes (mobile vs desktop load times)
+
+### Additional Enhancements
+- Performance optimizations for large datasets
+- Advanced filtering options for reports
+- Bulk operations for order management
+- Enhanced accessibility features for screen readers and keyboard navigation
+
+---
+
 ## Summary
 
 Restaunax provides a complete restaurant management solution that grows with your business:
