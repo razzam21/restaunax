@@ -103,17 +103,25 @@ git push origin dev
 
 #### Configuration Variables
 
-**To change the production API URL or other deployment settings, edit `.gitlab-ci.yml` variables section:**
+**API URL Configuration (Single Source of Truth):**
 
-```yaml
-variables:
-  FRONTEND_PORT: "3004"                    # Port for frontend container
-  PRODUCTION_API_URL: "https://restaunax.turnersrus.com/api"  # Production API endpoint
-  CORS_ORIGIN: "http://restaunax.turnersrus.com,https://restaunax.turnersrus.com"  # CORS origins
-  OLLAMA_URL: "http://10.13.0.254:11434"  # AI service endpoint
-```
+1. **Development**: Edit your `.env` file:
+   ```bash
+   REACT_APP_API_URL=http://localhost:8081/api
+   ```
 
-**IMPORTANT**: When changing `PRODUCTION_API_URL`, the domain must match one of the `CORS_ORIGIN` values.
+2. **Production CI/CD**: Edit `.gitlab-ci.yml` variables section:
+   ```yaml
+   variables:
+     PRODUCTION_API_URL: "https://restaunax.turnersrus.com/api"  # Production API endpoint
+   ```
+
+3. **Manual Production Build**: Pass environment variable:
+   ```bash
+   REACT_APP_API_URL=https://yourdomain.com/api docker compose build client
+   ```
+
+**IMPORTANT**: When changing API URLs, ensure the domain matches one of the `CORS_ORIGIN` values in your configuration.
 
 ## Important Data Models
 

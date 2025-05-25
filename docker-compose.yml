@@ -16,6 +16,8 @@ services:
       context: .
       dockerfile: ./docker/client/Dockerfile
       target: ${DOCKER_TARGET:-development}
+      args:
+        REACT_APP_API_URL: ${REACT_APP_API_URL}
     image: restaunax-client:latest
     ports:
       - "${CLIENT_PORT:-3000}:3000"
