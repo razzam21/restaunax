@@ -19,7 +19,9 @@ import {
   Slider,
   Typography,
   CircularProgress,
-  Alert
+  Alert,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import TimerIcon from '@mui/icons-material/Timer';
@@ -34,6 +36,9 @@ const initialDietaryInfo = {
 };
 
 const MenuItemForm = ({ item, categories, onClose, onSave }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -176,15 +181,15 @@ const MenuItemForm = ({ item, categories, onClose, onSave }) => {
   return (
     <>
       <DialogTitle>{item ? 'Edit Menu Item' : 'Add New Menu Item'}</DialogTitle>
-      <DialogContent>
-        <Box component="form" noValidate sx={{ mt: 2 }}>
+      <DialogContent sx={{ px: isMobile ? 2 : 3 }}>
+        <Box component="form" noValidate sx={{ mt: isMobile ? 1 : 2 }}>
           {submitError && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {submitError}
             </Alert>
           )}
           
-          <Grid container spacing={2}>
+          <Grid container spacing={isMobile ? 1 : 2}>
             {/* Basic Info Section */}
             <Grid item xs={12}>
               <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
@@ -220,7 +225,7 @@ const MenuItemForm = ({ item, categories, onClose, onSave }) => {
             </Grid>
             
             {/* Price */}
-            <Grid item xs={6}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 required
                 fullWidth
@@ -230,6 +235,7 @@ const MenuItemForm = ({ item, categories, onClose, onSave }) => {
                 onChange={handleChange}
                 error={!!errors.price}
                 helperText={errors.price}
+                size={isMobile ? "medium" : "medium"}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -241,15 +247,16 @@ const MenuItemForm = ({ item, categories, onClose, onSave }) => {
             </Grid>
             
             {/* Preparation Time */}
-            <Grid item xs={6}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Preparation Time (minutes)"
+                label={isMobile ? "Prep Time (min)" : "Preparation Time (minutes)"}
                 name="preparationTime"
                 value={formData.preparationTime}
                 onChange={handleChange}
                 error={!!errors.preparationTime}
                 helperText={errors.preparationTime}
+                size={isMobile ? "medium" : "medium"}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -261,8 +268,8 @@ const MenuItemForm = ({ item, categories, onClose, onSave }) => {
             </Grid>
             
             {/* Category */}
-            <Grid item xs={6}>
-              <FormControl fullWidth>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size={isMobile ? "medium" : "medium"}>
                 <InputLabel>Category</InputLabel>
                 <Select
                   name="categoryId"
@@ -283,7 +290,11 @@ const MenuItemForm = ({ item, categories, onClose, onSave }) => {
             </Grid>
             
             {/* Active Status */}
-            <Grid item xs={6}>
+            <Grid item xs={12} sm={6} sx={{
+              display: 'flex',
+              alignItems: isMobile ? 'flex-start' : 'center',
+              pt: isMobile ? 2 : 0,
+            }}>
               <FormControlLabel
                 control={
                   <Checkbox
@@ -317,7 +328,7 @@ const MenuItemForm = ({ item, categories, onClose, onSave }) => {
             
             {/* Dietary Checkboxes */}
             <Grid item xs={12}>
-              <FormGroup row>
+              <FormGroup row={!isMobile} sx={{ flexDirection: isMobile ? 'column' : 'row' }}>
                 <FormControlLabel
                   control={
                     <Checkbox
@@ -391,8 +402,21 @@ const MenuItemForm = ({ item, categories, onClose, onSave }) => {
           </Grid>
         </Box>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={loading}>
+      <DialogActions sx={{
+        px: isMobile ? 2 : 3,
+        py: isMobile ? 1.5 : 2,
+        gap: isMobile ? 1 : 0,
+        flexDirection: isMobile ? 'column-reverse' : 'row',
+      }}>
+        <Button 
+          onClick={onClose} 
+          disabled={loading}
+          sx={{ 
+            minHeight: isMobile ? 48 : 'auto',
+            order: isMobile ? 2 : 1,
+          }}
+          fullWidth={isMobile}
+        >
           Cancel
         </Button>
         <Button 
@@ -401,6 +425,11 @@ const MenuItemForm = ({ item, categories, onClose, onSave }) => {
           color="primary"
           disabled={loading}
           startIcon={loading ? <CircularProgress size={20} /> : null}
+          sx={{ 
+            minHeight: isMobile ? 48 : 'auto',
+            order: isMobile ? 1 : 2,
+          }}
+          fullWidth={isMobile}
         >
           {loading ? 'Saving...' : 'Save'}
         </Button>

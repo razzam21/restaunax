@@ -14,6 +14,8 @@ import {
   MenuItem,
   Chip,
   LinearProgress,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -28,6 +30,8 @@ import { useAI } from '../../../contexts/AIContext';
 
 const DemandForecastForm = () => {
   const { createDemandForecast, loading, error } = useAI();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   const [formData, setFormData] = useState({
     startDate: null,
@@ -134,11 +138,17 @@ const DemandForecastForm = () => {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box>
-        <Box display="flex" alignItems="center" gap={2} mb={3}>
-          <TrendingUpIcon color="primary" />
+      <Box sx={{ px: isMobile ? 1 : 0 }}>
+        <Box 
+          display="flex" 
+          alignItems={isMobile ? "flex-start" : "center"} 
+          gap={isMobile ? 1 : 2} 
+          mb={isMobile ? 2 : 3}
+          flexDirection={isMobile ? "column" : "row"}
+        >
+          <TrendingUpIcon color="primary" sx={{ alignSelf: isMobile ? "flex-start" : "auto" }} />
           <Box>
-            <Typography variant="h5" component="h2">
+            <Typography variant={isMobile ? "h6" : "h5"} component="h2">
               Demand Forecasting
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -160,17 +170,24 @@ const DemandForecastForm = () => {
         )}
 
         <form onSubmit={handleSubmit}>
-          <Grid container spacing={3}>
+          <Grid container spacing={isMobile ? 2 : 3}>
             {/* Forecast Period */}
             <Grid item xs={12}>
               <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1}>
+                <CardContent sx={{ p: isMobile ? 2 : isTablet ? 2.5 : 3 }}>
+                  <Typography 
+                    variant={isMobile ? "subtitle1" : isTablet ? "h6" : "h6"} 
+                    gutterBottom 
+                    display="flex" 
+                    alignItems="center" 
+                    gap={1}
+                    sx={{ mb: isMobile ? 1 : isTablet ? 1.5 : 2 }}
+                  >
                     <ScheduleIcon fontSize="small" />
                     Forecast Period
                   </Typography>
                   
-                  <Grid container spacing={2}>
+                  <Grid container spacing={isMobile ? 1 : 2}>
                     <Grid item xs={12} sm={6}>
                       <DatePicker
                         label="Start Date"
@@ -183,6 +200,7 @@ const DemandForecastForm = () => {
                             fullWidth
                             error={!!validationErrors.startDate}
                             helperText={validationErrors.startDate}
+                            size={isMobile ? "medium" : "medium"}
                           />
                         )}
                       />
@@ -199,6 +217,7 @@ const DemandForecastForm = () => {
                             fullWidth
                             error={!!validationErrors.endDate}
                             helperText={validationErrors.endDate}
+                            size={isMobile ? "medium" : "medium"}
                           />
                         )}
                       />
@@ -211,13 +230,24 @@ const DemandForecastForm = () => {
             {/* Historical Data Configuration */}
             <Grid item xs={12}>
               <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1}>
+                <CardContent sx={{ p: isMobile ? 2 : isTablet ? 2.5 : 3 }}>
+                  <Typography 
+                    variant={isMobile ? "subtitle1" : isTablet ? "h6" : "h6"} 
+                    gutterBottom 
+                    display="flex" 
+                    alignItems="center" 
+                    gap={1}
+                    sx={{ mb: isMobile ? 1 : isTablet ? 1.5 : 2 }}
+                  >
                     <AnalyticsIcon fontSize="small" />
                     Historical Data Analysis
                   </Typography>
                   
-                  <FormControl fullWidth error={!!validationErrors.lookbackDays}>
+                  <FormControl 
+                    fullWidth 
+                    error={!!validationErrors.lookbackDays}
+                    size={isMobile ? "medium" : "medium"}
+                  >
                     <InputLabel>Historical Data Period</InputLabel>
                     <Select
                       value={formData.lookbackDays}
@@ -242,7 +272,7 @@ const DemandForecastForm = () => {
                     )}
                   </FormControl>
                   
-                  <Box mt={2}>
+                  <Box mt={isMobile ? 1 : 2}>
                     <Typography variant="body2" color="text.secondary">
                       The AI will analyze {formData.lookbackDays} days of historical order data to identify patterns and generate accurate forecasts.
                     </Typography>
@@ -254,12 +284,12 @@ const DemandForecastForm = () => {
             {/* Processing Information */}
             <Grid item xs={12}>
               <Card variant="outlined" sx={{ bgcolor: 'background.default' }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
+                <CardContent sx={{ p: isMobile ? 2 : isTablet ? 2.5 : 3 }}>
+                  <Typography variant={isMobile ? "subtitle1" : isTablet ? "h6" : "h6"} gutterBottom>
                     Analysis Details
                   </Typography>
                   
-                  <Grid container spacing={2}>
+                  <Grid container spacing={isMobile ? 1 : 2}>
                     <Grid item xs={12} sm={6}>
                       <Box display="flex" justifyContent="space-between" alignItems="center">
                         <Typography variant="body2">Estimated Duration:</Typography>
@@ -282,7 +312,7 @@ const DemandForecastForm = () => {
                     </Grid>
                   </Grid>
                   
-                  <Typography variant="body2" color="text.secondary" mt={2}>
+                  <Typography variant="body2" color="text.secondary" mt={isMobile ? 1 : 2}>
                     You&apos;ll receive real-time notifications as the analysis progresses. The forecast will include hourly predictions, confidence intervals, and actionable insights.
                   </Typography>
                 </CardContent>
@@ -291,14 +321,23 @@ const DemandForecastForm = () => {
 
             {/* Submit Button */}
             <Grid item xs={12}>
-              <Box display="flex" justifyContent="flex-end" gap={2}>
+              <Box 
+                display="flex" 
+                justifyContent={isMobile ? "center" : "flex-end"} 
+                gap={2}
+              >
                 <Button
                   type="submit"
                   variant="contained"
                   size="large"
                   disabled={loading}
                   startIcon={<TrendingUpIcon />}
-                  sx={{ minWidth: 200 }}
+                  sx={{ 
+                    minWidth: isMobile ? 'auto' : 200,
+                    minHeight: isMobile ? 56 : 'auto',
+                    px: isMobile ? 4 : 3,
+                  }}
+                  fullWidth={isMobile}
                 >
                   {loading ? 'Starting Analysis...' : 'Generate Forecast'}
                 </Button>

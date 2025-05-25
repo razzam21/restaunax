@@ -24,6 +24,8 @@ import {
   Snackbar,
   Alert,
   Autocomplete,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -37,6 +39,9 @@ const OrderForm = () => {
   const { createOrder } = useOrders();
   const { menuItems, fetchMenuItems } = useMenu();
   const navigateTimeoutRef = useRef(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   
   // Fetch menu items on component mount
   useEffect(() => {
@@ -287,23 +292,30 @@ const OrderForm = () => {
   };
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+    <Box sx={{ px: isMobile ? 1 : isTablet ? 2 : 0 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: isMobile ? 'flex-start' : 'center', 
+        mb: isMobile ? 2 : isTablet ? 2.5 : 3,
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? 1 : isTablet ? 0.5 : 0,
+      }}>
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate('/orders')}
-          sx={{ mr: 2 }}
+          sx={{ mr: isMobile ? 0 : isTablet ? 1 : 2, alignSelf: isMobile ? 'flex-start' : 'auto' }}
+          size={isMobile ? "small" : isTablet ? "medium" : "medium"}
         >
           Back to Orders
         </Button>
-        <Typography variant="h4" component="h1">
+        <Typography variant={isMobile ? "h5" : isTablet ? "h4" : "h4"} component="h1">
           Create New Order
         </Typography>
       </Box>
 
-      <Paper sx={{ p: 3 }}>
+      <Paper sx={{ p: isMobile ? 2 : isTablet ? 2.5 : 3 }}>
         <form onSubmit={handleSubmit}>
-          <Grid container spacing={3}>
+          <Grid container spacing={isMobile ? 2 : 3}>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -314,16 +326,18 @@ const OrderForm = () => {
                 error={!!errors.customerName}
                 helperText={errors.customerName}
                 required
-                sx={{ mb: 3 }}
+                sx={{ mb: isMobile ? 2 : 3 }}
+                size={isMobile ? "medium" : "medium"}
               />
 
-              <FormControl component="fieldset" sx={{ mb: 3 }}>
+              <FormControl component="fieldset" sx={{ mb: isMobile ? 2 : 3 }}>
                 <FormLabel component="legend">Order Type</FormLabel>
                 <RadioGroup
-                  row
+                  row={!isMobile}
                   name="orderType"
                   value={formData.orderType}
                   onChange={handleChange}
+                  sx={{ flexDirection: isMobile ? 'column' : 'row' }}
                 >
                   <FormControlLabel
                     value="delivery"
@@ -340,14 +354,14 @@ const OrderForm = () => {
             </Grid>
           </Grid>
 
-          <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>
+          <Typography variant="h6" sx={{ mt: isMobile ? 2 : 3, mb: 2 }}>
             Order Items
           </Typography>
 
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
+          <Card sx={{ mb: isMobile ? 2 : 3 }}>
+            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
               {formData.items.map((item, index) => (
-                <Grid container spacing={2} key={index} sx={{ mb: 2 }}>
+                <Grid container spacing={isMobile ? 1 : 2} key={index} sx={{ mb: isMobile ? 1.5 : 2 }}>
                   <Grid item xs={12} sm={5}>
                     <Autocomplete
                       // Sort options alphabetically by name before providing to Autocomplete
@@ -372,10 +386,11 @@ const OrderForm = () => {
                           {...params}
                           fullWidth
                           label="Item Name"
-                          placeholder="Select from menu or enter custom item"
+                          placeholder={isMobile ? "Select or enter item" : "Select from menu or enter custom item"}
                           error={!!errors[`items[${index}].name`]}
                           helperText={errors[`items[${index}].name`]}
                           required
+                          size={isMobile ? "medium" : "medium"}
                         />
                       )}
                     />
@@ -391,6 +406,7 @@ const OrderForm = () => {
                       error={!!errors[`items[${index}].quantity`]}
                       helperText={errors[`items[${index}].quantity`]}
                       required
+                      size={isMobile ? "medium" : "medium"}
                     />
                   </Grid>
                   <Grid item xs={6} sm={3}>
@@ -405,13 +421,21 @@ const OrderForm = () => {
                       helperText={errors[`items[${index}].price`]}
                       required
                       disabled={!!item.menuItemId} // Disable if selected from menu
+                      size={isMobile ? "medium" : "medium"}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={2} sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Grid item xs={12} sm={2} sx={{ 
+                    display: 'flex', 
+                    alignItems: isMobile ? 'flex-start' : 'center',
+                    justifyContent: isMobile ? 'flex-end' : 'center',
+                    pt: isMobile ? 1 : 0,
+                  }}>
                     <IconButton
                       color="error"
                       onClick={() => removeItem(index)}
                       disabled={formData.items.length === 1}
+                      size={isMobile ? "large" : "medium"}
+                      sx={{ minHeight: isMobile ? 48 : 'auto' }}
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -422,7 +446,12 @@ const OrderForm = () => {
               <Button
                 startIcon={<AddIcon />}
                 onClick={addItem}
-                sx={{ mt: 1 }}
+                sx={{ 
+                  mt: 1,
+                  minHeight: isMobile ? 48 : 'auto',
+                }}
+                size={isMobile ? "medium" : "medium"}
+                fullWidth={isMobile}
               >
                 Add Item
               </Button>
@@ -466,12 +495,21 @@ const OrderForm = () => {
             </Table>
           </TableContainer>
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: isMobile ? 'center' : 'flex-end',
+            mt: isMobile ? 2 : 0,
+          }}>
             <Button
               variant="contained"
               color="primary"
               type="submit"
               size="large"
+              sx={{ 
+                minHeight: isMobile ? 56 : 'auto',
+                px: isMobile ? 4 : 3,
+              }}
+              fullWidth={isMobile}
             >
               Create Order
             </Button>
