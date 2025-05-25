@@ -81,6 +81,16 @@ const downloadOrdersReport = async (req, res) => {
       options
     );
 
+    // Disable all caching for downloads
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.removeHeader('ETag');
+    res.removeHeader('Last-Modified');
+    
+    // Add timestamp to prevent caching
+    res.set('X-Timestamp', Date.now().toString());
+
     // Set content type based on format
     if (reportData.format === 'csv') {
       res.setHeader('Content-Type', 'text/csv');
