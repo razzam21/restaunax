@@ -188,64 +188,54 @@ class DemandForecastService {
    * @returns {string} System prompt
    */
   generateSystemPrompt() {
-    return `You are a restaurant demand forecasting expert with deep knowledge of:
+    return `You are a restaurant demand forecasting expert analyzing historical order data to predict future demand patterns.
 
-- Restaurant industry trends and seasonal patterns
-- Customer behavior analysis and ordering patterns
-- Peak hours identification and capacity planning
-- Menu item performance correlation with demand
-- Day-of-week and time-of-day demand variations
-- National and regional holiday impacts on dining patterns
-- Special events and their effect on restaurant demand
-
-Your task is to analyze historical order data and generate accurate demand forecasts.
-
-IMPORTANT INSTRUCTIONS:
-1. Provide predictions for each day in the forecast period
-2. Include hourly predictions for peak identification
-3. Consider seasonal trends, day-of-week patterns, and historical growth
-4. Account for national holidays and their impact on dining behavior:
-   - Major holidays (Christmas, Thanksgiving, New Year's, Independence Day, etc.)
-   - Religious holidays (Easter, Passover, Ramadan, etc.)
-   - Federal holidays (Labor Day, Memorial Day, Presidents Day, etc.)
-   - Regional celebrations and local events
-5. Adjust predictions based on holiday patterns:
-   - Reduced demand on major holidays when families cook at home
-   - Increased demand before holidays for takeout/delivery
-   - Different patterns for different types of holidays (family vs. social)
-6. Assess confidence levels based on data quality and consistency
-7. Provide actionable insights and staffing recommendations including holiday considerations
+CRITICAL: You MUST respond with valid JSON in exactly this structure. Do not include any text before or after the JSON.
 
 REQUIRED RESPONSE FORMAT (JSON):
 {
-  "confidence": number (0-1),
+  "confidence": 0.75,
   "forecast": [
     {
-      "date": "YYYY-MM-DD",
-      "day_of_week": "Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday",
-      "orders": number,
-      "revenue": number,
-      "confidence": number (0-1),
-      "peak_hours": ["HH:00", "HH:00"],
-      "notes": "string"
+      "date": "2025-05-26",
+      "day_of_week": "Monday",
+      "orders": 45,
+      "revenue": 1250.50,
+      "confidence": 0.8,
+      "peak_hours": ["12:00", "18:00"],
+      "notes": "Expected higher lunch orders due to business district location"
     }
   ],
   "insights": [
-    "string - pattern observations"
+    "Weekend demand typically 40% higher than weekdays based on historical patterns",
+    "Lunch hours (11:00-14:00) consistently drive 45% of daily revenue",
+    "Weather patterns show 20% increase in delivery orders during rain"
   ],
   "recommendations": [
-    "string - actionable recommendations"
+    "Schedule 2 additional staff members for weekend lunch shifts",
+    "Increase inventory for top 5 menu items by 25% during forecast period",
+    "Consider promotional pricing for slower Tuesday/Wednesday periods"
   ],
   "summary": {
-    "total_predicted_orders": number,
-    "total_predicted_revenue": number,
-    "average_confidence": number,
-    "peak_day": "Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday",
-    "growth_trend": "increasing|stable|decreasing"
+    "total_predicted_orders": 285,
+    "total_predicted_revenue": 7850.75,
+    "average_confidence": 0.75,
+    "peak_day": "Saturday",
+    "growth_trend": "increasing"
   }
 }
 
-Focus on accuracy, provide confidence levels, and give practical recommendations for restaurant operations.`;
+REQUIREMENTS:
+1. Generate predictions for EVERY day in the forecast period
+2. Include realistic order counts and revenue based on historical patterns
+3. Provide confidence levels between 0.6-0.95
+4. List 3-5 specific insights about patterns observed
+5. Give 3-5 actionable recommendations for operations
+6. Calculate accurate summary totals
+
+The insights array MUST contain specific observations about demand patterns.
+The recommendations array MUST contain practical, actionable advice.
+The forecast array MUST have an entry for each day in the requested period.`;
   }
 
   /**

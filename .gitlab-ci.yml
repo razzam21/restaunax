@@ -143,7 +143,6 @@ deploy_to_unraid:
     - ssh $UNRAID_USER@$UNRAID_SERVER "docker rmi -f $UNRAID_SERVER:5000/restaunax-client:latest || true"
     - ssh $UNRAID_USER@$UNRAID_SERVER "docker rmi -f $UNRAID_SERVER:5000/restaunax-server:latest || true"
     - ssh $UNRAID_USER@$UNRAID_SERVER "docker pull $UNRAID_SERVER:5000/restaunax-client:latest && docker pull $UNRAID_SERVER:5000/restaunax-server:latest"
-    - ssh $UNRAID_USER@$UNRAID_SERVER "echo 'Verifying start.sh exists in client image:' && docker run --rm $UNRAID_SERVER:5000/restaunax-client:latest ls -la /start.sh"
     - ssh $UNRAID_USER@$UNRAID_SERVER "cd /mnt/user/appdata/restaunax && docker compose -f docker-compose.production.yml -p restaunax up -d"
     
     # Database setup (only if tables don't exist)
