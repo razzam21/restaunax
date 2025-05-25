@@ -28,8 +28,18 @@ build_images:
     - echo "Creating production .env from template..."
     - cp .env.example .env
     
-    # Generate secure database password
-    - DB_PASSWORD="postgres_prod_$(date +%s | sha256sum | head -c 16)"
+    # Check if database already exists and reuse password, or generate new one
+    - echo "Checking for existing database configuration..."
+    - |
+      if ssh $UNRAID_USER@$UNRAID_SERVER "test -f /mnt/user/appdata/restaunax/.env"; then
+        echo "Existing deployment found, reusing database password..."
+        DB_PASSWORD=$(ssh $UNRAID_USER@$UNRAID_SERVER "grep '^POSTGRES_PASSWORD=' /mnt/user/appdata/restaunax/.env | cut -d'=' -f2")
+        echo "Reusing existing database password"
+      else
+        echo "No existing deployment found, generating new database password..."
+        DB_PASSWORD="postgres_prod_$(date +%s | sha256sum | head -c 16)"
+        echo "Generated new database password"
+      fi
     
     # Update configuration using sed
     - echo "Updating environment configuration for production..."
@@ -47,11 +57,20 @@ build_images:
     - sed -i "s|REACT_APP_API_URL=http://localhost:8081/api|REACT_APP_API_URL=https://restaunax.turnersrus.com/api|" .env
     - sed -i "s|CORS_ORIGIN=http://localhost:3000|CORS_ORIGIN=${CORS_ORIGIN}|" .env
     
-    # JWT Configuration - Generate secure random secrets
-    - echo "Generating secure JWT secrets..."
-    - JWT_ACCESS_SECRET=$(openssl rand -hex 256)
-    - JWT_REFRESH_SECRET=$(openssl rand -hex 256)
-    - echo "JWT secrets generated successfully"
+    # JWT Configuration - Reuse existing secrets or generate new ones
+    - echo "Handling JWT secrets..."
+    - |
+      if ssh $UNRAID_USER@$UNRAID_SERVER "test -f /mnt/user/appdata/restaunax/.env"; then
+        echo "Reusing existing JWT secrets..."
+        JWT_ACCESS_SECRET=$(ssh $UNRAID_USER@$UNRAID_SERVER "grep '^JWT_ACCESS_SECRET=' /mnt/user/appdata/restaunax/.env | cut -d'=' -f2")
+        JWT_REFRESH_SECRET=$(ssh $UNRAID_USER@$UNRAID_SERVER "grep '^JWT_REFRESH_SECRET=' /mnt/user/appdata/restaunax/.env | cut -d'=' -f2")
+        echo "Existing JWT secrets retrieved"
+      else
+        echo "Generating new JWT secrets..."
+        JWT_ACCESS_SECRET=$(openssl rand -hex 256)
+        JWT_REFRESH_SECRET=$(openssl rand -hex 256)
+        echo "New JWT secrets generated"
+      fi
     
     # Replace JWT secrets using line replacement
     - sed -i "/^JWT_ACCESS_SECRET=/c\JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}" .env
