@@ -287,7 +287,7 @@ REQUIRED RESPONSE FORMAT (JSON):
     "analysis_period_days": 30,
     "top_category": "Pizza"
   },
-  "items": [
+  "item_performance": [
     {
       "item_id": "string",
       "name": "string", 
@@ -300,7 +300,7 @@ REQUIRED RESPONSE FORMAT (JSON):
       "recommendation": "promote"
     }
   ],
-  "categories": [
+  "category_performance": [
     {
       "category": "string",
       "item_count": 0,
@@ -309,10 +309,14 @@ REQUIRED RESPONSE FORMAT (JSON):
     }
   ],
   "insights": [
-    "At least 3-5 specific insights about menu performance trends, customer preferences, and business opportunities"
+    "Top performers drive 60% of revenue despite being only 30% of menu items",
+    "Weekend sales show 40% higher average order values than weekdays",
+    "Pizza category dominates with $45,000 revenue representing 53% of total sales"
   ],
   "recommendations": [
-    "At least 3-5 specific actionable recommendations with clear business rationale"
+    "Remove bottom 20% performing items to reduce kitchen complexity and food waste",
+    "Increase prices on high-demand items with low profit margins by 8-12%",
+    "Feature top 3 revenue generators prominently on menu and promotional materials"
   ]
 }
 
