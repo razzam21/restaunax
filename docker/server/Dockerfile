@@ -41,10 +41,9 @@ RUN mkdir -p /app/logs && \
 # Set Prisma binary target for Alpine
 ENV PRISMA_BINARY_TARGET=linux-musl
 
-# Generate Prisma client (check schema exists first for debugging)
-RUN ls -la prisma/ || echo "No prisma directory found" && \
-    ls -la prisma/schema.prisma || echo "No schema.prisma found" && \
-    npx prisma generate
+# Skip Prisma generation in development - it will be handled by volume mount
+# Production builds will have the correct context and prisma directory
+RUN echo "Skipping Prisma generation in development stage"
 
 # Switch to non-root user
 USER nodejs
@@ -62,7 +61,7 @@ CMD ["npm", "run", "dev"]
 # Stage 3: Production build
 FROM base AS production
 
-# Copy source code directly (not from development stage)
+# Copy source code
 COPY --chown=nodejs:nodejs . .
 
 # Create logs directory with proper permissions
