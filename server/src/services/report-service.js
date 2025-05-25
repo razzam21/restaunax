@@ -454,36 +454,75 @@ async function generateOrdersReportData(restaurantId, options = {}) {
       doc.fontSize(14).text('Orders', { underline: true });
       doc.moveDown();
 
-      // Table headers
-      const tableTop = doc.y;
-      const colWidths = [80, 100, 80, 80, 80, 100];
+      // Table configuration
+      const margin = 50;
+      const pageWidth = doc.page.width - 2 * margin;
+      const colWidths = [60, 120, 60, 60, 70, 80]; // Adjusted widths
+      const rowHeight = 25;
       
-      let currentY = tableTop;
-      doc.fontSize(10);
+      let currentY = doc.y;
+      doc.fontSize(9); // Smaller font for better fit
+      
+      // Helper function to draw table row
+      const drawTableRow = (data, y, isHeader = false) => {
+        let x = margin;
+        
+        // Draw cell backgrounds for header
+        if (isHeader) {
+          doc.rect(margin, y, pageWidth, rowHeight).fillAndStroke('#f0f0f0', '#000');
+          doc.fillColor('#000');
+        }
+        
+        // Draw cell borders and text
+        data.forEach((text, i) => {
+          // Draw cell border
+          doc.rect(x, y, colWidths[i], rowHeight).stroke();
+          
+          // Draw text with padding and truncation
+          const cellText = String(text).substring(0, 20); // Truncate long text
+          doc.text(cellText, x + 3, y + 5, {
+            width: colWidths[i] - 6,
+            height: rowHeight - 10,
+            align: i >= 3 ? 'right' : 'left', // Right align numbers
+            baseline: 'middle'
+          });
+          
+          x += colWidths[i];
+        });
+        
+        return y + rowHeight;
+      };
+      
+      // Check if we need a new page
+      const checkPageBreak = (requiredSpace) => {
+        if (currentY + requiredSpace > doc.page.height - margin) {
+          doc.addPage();
+          currentY = margin;
+        }
+      };
       
       // Draw headers
-      doc.text('Order #', doc.x, currentY);
-      doc.text('Customer', doc.x + colWidths[0], currentY);
-      doc.text('Type', doc.x + colWidths[0] + colWidths[1], currentY);
-      doc.text('Status', doc.x + colWidths[0] + colWidths[1] + colWidths[2], currentY);
-      doc.text('Total', doc.x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3], currentY);
-      doc.text('Created At', doc.x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4], currentY);
+      checkPageBreak(rowHeight);
+      currentY = drawTableRow(['Order #', 'Customer', 'Type', 'Status', 'Total', 'Date'], currentY, true);
       
-      currentY += 20;
-      
-      // Draw rows
-      report.orders.slice(0, 50).forEach(order => { // Limit to 50 orders for PDF
-        doc.text(order.orderNumber || order.id.substring(0, 8), doc.x, currentY);
-        doc.text(order.customerName, doc.x + colWidths[0], currentY);
-        doc.text(order.orderType, doc.x + colWidths[0] + colWidths[1], currentY);
-        doc.text(order.status, doc.x + colWidths[0] + colWidths[1] + colWidths[2], currentY);
-        doc.text(`$${order.total.toFixed(2)}`, doc.x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3], currentY);
-        doc.text(new Date(order.createdAt).toLocaleDateString(), doc.x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4], currentY);
+      // Draw data rows
+      report.orders.forEach((order, index) => {
+        checkPageBreak(rowHeight);
         
-        currentY += 20;
-        if (currentY > doc.page.height - 50) {
-          doc.addPage();
-          currentY = 50;
+        const rowData = [
+          order.orderNumber || order.id.substring(0, 8),
+          order.customerName,
+          order.orderType,
+          order.status,
+          `$${order.total.toFixed(2)}`,
+          new Date(order.createdAt).toLocaleDateString()
+        ];
+        
+        currentY = drawTableRow(rowData, currentY);
+        
+        // Add spacing every 10 rows for readability
+        if ((index + 1) % 10 === 0) {
+          currentY += 5;
         }
       });
 
