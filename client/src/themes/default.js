@@ -2,6 +2,15 @@
 import { createTheme } from '@mui/material/styles';
 
 const defaultTheme = createTheme({
+  breakpoints: {
+    values: {
+      xs: 0,     // Mobile phones (0px and up)
+      sm: 600,   // Small tablets (600px and up)
+      md: 960,   // Large tablets/small laptops (960px and up)
+      lg: 1280,  // Laptops/desktops (1280px and up)
+      xl: 1920,  // Large desktops (1920px and up)
+    },
+  },
   palette: {
     primary: {
       main: '#2C4A7A', // Slightly Dark Blue
@@ -52,50 +61,102 @@ const defaultTheme = createTheme({
   },
   typography: {
     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    // Responsive typography - different sizes for different devices
     h1: {
       fontWeight: 700,
-      fontSize: '2.5rem',
+      fontSize: '1.75rem', // Mobile
+      '@media (min-width:600px)': {
+        fontSize: '2rem',    // Tablet
+      },
+      '@media (min-width:960px)': {
+        fontSize: '2.5rem',  // Desktop
+      },
     },
     h2: {
       fontWeight: 600,
-      fontSize: '2rem',
+      fontSize: '1.5rem',  // Mobile
+      '@media (min-width:600px)': {
+        fontSize: '1.75rem', // Tablet
+      },
+      '@media (min-width:960px)': {
+        fontSize: '2rem',    // Desktop
+      },
     },
     h3: {
       fontWeight: 600,
-      fontSize: '1.75rem',
+      fontSize: '1.25rem', // Mobile
+      '@media (min-width:600px)': {
+        fontSize: '1.5rem',  // Tablet
+      },
+      '@media (min-width:960px)': {
+        fontSize: '1.75rem', // Desktop
+      },
     },
     h4: {
       fontWeight: 600,
-      fontSize: '1.5rem',
+      fontSize: '1.125rem', // Mobile
+      '@media (min-width:600px)': {
+        fontSize: '1.25rem',  // Tablet
+      },
+      '@media (min-width:960px)': {
+        fontSize: '1.5rem',   // Desktop
+      },
     },
     h5: {
       fontWeight: 500,
-      fontSize: '1.25rem',
+      fontSize: '1rem',     // Mobile
+      '@media (min-width:600px)': {
+        fontSize: '1.125rem', // Tablet
+      },
+      '@media (min-width:960px)': {
+        fontSize: '1.25rem',  // Desktop
+      },
     },
     h6: {
       fontWeight: 500,
-      fontSize: '1rem',
+      fontSize: '0.875rem', // Mobile
+      '@media (min-width:600px)': {
+        fontSize: '1rem',     // Tablet
+      },
+      '@media (min-width:960px)': {
+        fontSize: '1rem',     // Desktop
+      },
     },
     subtitle1: {
-      fontSize: '1rem',
+      fontSize: '0.875rem', // Mobile
       fontWeight: 400,
+      '@media (min-width:600px)': {
+        fontSize: '1rem',     // Tablet+
+      },
     },
     subtitle2: {
-      fontSize: '0.875rem',
+      fontSize: '0.75rem',  // Mobile
       fontWeight: 500,
+      '@media (min-width:600px)': {
+        fontSize: '0.875rem', // Tablet+
+      },
     },
     body1: {
-      fontSize: '1rem',
+      fontSize: '0.875rem', // Mobile
       fontWeight: 400,
+      '@media (min-width:600px)': {
+        fontSize: '1rem',     // Tablet+
+      },
     },
     body2: {
-      fontSize: '0.875rem',
+      fontSize: '0.75rem',  // Mobile
       fontWeight: 400,
+      '@media (min-width:600px)': {
+        fontSize: '0.875rem', // Tablet+
+      },
     },
     button: {
-      fontSize: '0.875rem',
+      fontSize: '0.75rem',  // Mobile
       fontWeight: 500,
       textTransform: 'none',
+      '@media (min-width:600px)': {
+        fontSize: '0.875rem', // Tablet+
+      },
     },
   },
   shape: {
