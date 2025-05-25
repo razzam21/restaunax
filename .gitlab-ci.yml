@@ -9,7 +9,7 @@ variables:
   DOCKER_DRIVER: overlay2
   
   # Application configuration
-  FRONTEND_PORT: "3001"
+  FRONTEND_PORT: "3004"
   OLLAMA_URL: "http://10.13.0.254:11434"
   CORS_ORIGIN: "https://restaunax.turnersrus.com"
   OLLAMA_MODEL: "deepseek-coder:1.3b"
