@@ -47,14 +47,15 @@ build_images:
     - sed -i "s|REACT_APP_API_URL=http://localhost:8081/api|REACT_APP_API_URL=https://restaunax.turnersrus.com/api|" .env
     - sed -i "s|CORS_ORIGIN=http://localhost:3000|CORS_ORIGIN=${CORS_ORIGIN}|" .env
     
-    # JWT Configuration - Use provided secrets
-    - |
-      JWT_ACCESS_SECRET="f883094145a60ef55edd1b32f770158c1a9b0fa63a76604bed9e4defbcbd4a108832d12362da10ff52d549ca68e2bbcb47abfd6211b6c528768958efab45ddd7ca690d83fa3884e3a36a4800bff28a701064cdf497b2812252f9637557cba74b85a36e3ad4efdaf4ddadad7faf7259fb2b48e4ebc509e068bbca302b73e16bb4dd24eb3e2b48be6e6e6c224fd5fbd0ce72be0f6eac80e1f75f1eaa59fdcc5d27df8319142f35a29b5ee76ac8a66c502cff447a218eaba9b7a8a394132a3426aabcfb768b03e8ae879c97d0a9439c26baf3722b1d03ba91550869ab1c3dc54a4412082fc92bc3053e065addcd997db7fd40baf4af7e853bdfc753d0f0007d60c8a322327340c1279942e970bf07cffffc9e2498c76ba25ded8c4140ef12d2e74a343c4580afeb8a63dde9eafc4767ee3485f7e13824b0d2527509668a0554a01ad99dde72acb7df11dbbb7b7fbf9d95de07937adbec925278b5703d4778f19e8b0c0a1e6be0e19a273e2bf61cf4c09eea5c97326a7fdccf1655cea80001e4035a0fb64611922e2d1fb9a5f4178505cc8d9d81207160d2f2889f3cc8dc30983ac8cfbb9ff6ff1a64ecaaa019f719f4cb483b9490dba020bf0b16dad5024735e4073c0b550fcfbf11b7f9ed18f876c491126b8c90199cb4075b15ad53201900af1bcdba0e2f7fe8699a942d8b823c31c41b49aab4e351bd2a3ddff1a16284ea77b4"
-      JWT_REFRESH_SECRET="494bdef45906781c61d147a507625ca1b40188a051cee45edfcca6a190057564304cccf51c5e7a571d33fdcf6cd1eae8b16caa490298f4c29cd4a099a83ff47af34a827a9bfdc58bf87617c64596b0ee18b4d687be3b73fcf53faaee1867c3011df87a55a41167be0064d0d3b84a9d8e4cc044620184593bd32ccf2e50128ce651a65a1d8c48fc1a716aeae80dd44348edeed27d4d20e8d1faabd16a3b1402b3e46f807ba4f83659878c524614a4673093fdb59acab3ad03f525a554ccb7f93deb2d6f831ebcf9db794f45ae86ea89dce940292181a90e86fddfdd9bc2df4d4b03e5764d0bb25ae96f06068d93186feb105c4f0ae4462c3ebd6fa725b42b0b16021a748917338b8df1b0891090cd623f9ed4911cd79a36e1a08ad2768b143c2efe7ec71cd2ec6417b92477e809f2229ebbc28980c2bb5ff6bd66e61da1df975c0873372bdc2f8ee06c8a2a4c7f4568f46e30de29edc37c6086a4df4568e9b2deb47257b9c32c436c478e2d17a8554ffc3c79d55792e4763f4f92ccedd0f9c22adfb2b44eb6086e6279b720d0e6bf83e764c9f42dc9f10e81728a880f927113ae872408d480608ad146b0a947d33b0bba7d3cab5cd8370e5923e70572b7ca665036ca9a02df311ffe1d90ca5465055b8f34f2ecbb209aa5f48e0c19e484ab617aa25514ceed5c435ef896bee611da7dfc1851a567d2f71796077ed5821d2390de"
-      
-      # Replace JWT secrets using line replacement
-      sed -i "/^JWT_ACCESS_SECRET=/c\JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}" .env
-      sed -i "/^JWT_REFRESH_SECRET=/c\JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}" .env
+    # JWT Configuration - Generate secure random secrets
+    - echo "Generating secure JWT secrets..."
+    - JWT_ACCESS_SECRET=$(openssl rand -hex 256)
+    - JWT_REFRESH_SECRET=$(openssl rand -hex 256)
+    - echo "JWT secrets generated successfully"
+    
+    # Replace JWT secrets using line replacement
+    - sed -i "/^JWT_ACCESS_SECRET=/c\JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}" .env
+    - sed -i "/^JWT_REFRESH_SECRET=/c\JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}" .env
     
     # AI Configuration - Enable AI features
     - sed -i "s/AI_ENABLED=false/AI_ENABLED=true/" .env
@@ -66,7 +67,7 @@ build_images:
     
     # Show .env file (without secrets) for debugging
     - echo "Generated .env file configuration:"
-    - cat .env | grep -v "SECRET\|PASSWORD\|_KEY" | head -20
+    - grep -v "SECRET\|PASSWORD\|_KEY" .env | head -20 || true
     
     # Build individual service images for production using Docker Bake
     - echo "Building Restaunax service images for production..."
