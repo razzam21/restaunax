@@ -48,8 +48,8 @@ services:
 
   server:
     build:
-      context: ./server
-      dockerfile: ../docker/server/Dockerfile
+      context: .
+      dockerfile: ./docker/server/Dockerfile
       target: ${DOCKER_TARGET:-development}
       args:
         USER_ID: ${UID:-1001}

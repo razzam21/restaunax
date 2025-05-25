@@ -16,7 +16,7 @@ RUN addgroup -g ${GROUP_ID} -S nodejs && \
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY server/package*.json ./
 
 # Install dependencies
 RUN npm ci --only=production && npm cache clean --force
@@ -31,7 +31,7 @@ RUN npm ci && npm cache clean --force
 RUN apk add --no-cache bash docker-cli
 
 # Copy source code
-COPY --chown=nodejs:nodejs . .
+COPY --chown=nodejs:nodejs server/ .
 
 # Create logs directory with proper permissions
 RUN mkdir -p /app/logs && \
