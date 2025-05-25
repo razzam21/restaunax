@@ -60,11 +60,19 @@ CMD ["npm", "run", "dev"]
 # Stage 3: Production build
 FROM base AS production
 
-# Copy built application
-COPY --from=development --chown=nodejs:nodejs /app /app
+# Copy source code directly (not from development stage)
+COPY --chown=nodejs:nodejs . .
 
-# Remove development dependencies
-RUN npm prune --production && npm cache clean --force
+# Create logs directory with proper permissions
+RUN mkdir -p /app/logs && \
+    chown -R nodejs:nodejs /app/logs && \
+    chmod -R 755 /app/logs
+
+# Set Prisma binary target for Alpine
+ENV PRISMA_BINARY_TARGET=linux-musl
+
+# Generate Prisma client
+RUN npx prisma generate
 
 # Switch to non-root user
 USER nodejs
