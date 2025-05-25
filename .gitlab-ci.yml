@@ -1,0 +1,260 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  # Docker configuration
+  DOCKER_HOST: unix:///var/run/docker.sock
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_DRIVER: overlay2
+  
+  # Application configuration
+  FRONTEND_PORT: "3001"
+  OLLAMA_URL: "http://10.13.0.254:11434"
+  CORS_ORIGIN: "https://restaunax.turnersrus.com"
+  OLLAMA_MODEL: "deepseek-coder:1.3b"
+
+# Build all Docker images for the application
+build_images:
+  stage: build
+  image: docker:latest
+  services: []
+  before_script:
+    - ls -l /var/run/docker*
+    - echo "Building Restaunax application images..."
+  script:
+    # Create production .env file
+    - |
+      cat > .env << EOF
+      # =============================================================================
+      # RESTAUNAX PRODUCTION ENVIRONMENT CONFIGURATION
+      # =============================================================================
+      
+      # Environment
+      NODE_ENV=production
+      
+      # =============================================================================
+      # NETWORK CONFIGURATION
+      # =============================================================================
+      # Client (Frontend) Configuration
+      CLIENT_PORT=${FRONTEND_PORT}
+      CLIENT_HOST=0.0.0.0
+      
+      # Server (Backend) Configuration  
+      SERVER_PORT=8080
+      SERVER_INTERNAL_PORT=8080
+      SERVER_EXTERNAL_PORT=8081
+      
+      # Database Ports
+      POSTGRES_PORT=5432
+      REDIS_PORT=6379
+      
+      # =============================================================================
+      # DATABASE CONFIGURATION
+      # =============================================================================
+      POSTGRES_USER=postgres
+      POSTGRES_PASSWORD=postgres_prod_$(date +%s | sha256sum | head -c 16)
+      POSTGRES_DB=restaunax
+      
+      # Database URLs (for Docker containers)
+      DATABASE_URL=postgresql://postgres:postgres_prod_$(date +%s | sha256sum | head -c 16)@db:5432/restaunax
+      
+      # =============================================================================
+      # REDIS CONFIGURATION
+      # =============================================================================
+      REDIS_URL=redis://redis:6379
+      REDIS_HOST=redis
+      REDIS_PASSWORD=
+      REDIS_DB=0
+      
+      # =============================================================================
+      # API CONFIGURATION
+      # =============================================================================
+      # Backend API URL for frontend
+      REACT_APP_API_URL=https://restaunax.turnersrus.com/api
+      
+      # CORS Configuration
+      CORS_ORIGIN=${CORS_ORIGIN}
+      
+      # =============================================================================
+      # SECURITY CONFIGURATION
+      # =============================================================================
+      # JWT Configuration - Production secrets
+      JWT_ACCESS_SECRET=f883094145a60ef55edd1b32f770158c1a9b0fa63a76604bed9e4defbcbd4a108832d12362da10ff52d549ca68e2bbcb47abfd6211b6c528768958efab45ddd7ca690d83fa3884e3a36a4800bff28a701064cdf497b2812252f9637557cba74b85a36e3ad4efdaf4ddadad7faf7259fb2b48e4ebc509e068bbca302b73e16bb4dd24eb3e2b48be6e6e6c224fd5fbd0ce72be0f6eac80e1f75f1eaa59fdcc5d27df8319142f35a29b5ee76ac8a66c502cff447a218eaba9b7a8a394132a3426aabcfb768b03e8ae879c97d0a9439c26baf3722b1d03ba91550869ab1c3dc54a4412082fc92bc3053e065addcd997db7fd40baf4af7e853bdfc753d0f0007d60c8a322327340c1279942e970bf07cffffc9e2498c76ba25ded8c4140ef12d2e74a343c4580afeb8a63dde9eafc4767ee3485f7e13824b0d2527509668a0554a01ad99dde72acb7df11dbbb7b7fbf9d95de07937adbec925278b5703d4778f19e8b0c0a1e6be0e19a273e2bf61cf4c09eea5c97326a7fdccf1655cea80001e4035a0fb64611922e2d1fb9a5f4178505cc8d9d81207160d2f2889f3cc8dc30983ac8cfbb9ff6ff1a64ecaaa019f719f4cb483b9490dba020bf0b16dad5024735e4073c0b550fcfbf11b7f9ed18f876c491126b8c90199cb4075b15ad53201900af1bcdba0e2f7fe8699a942d8b823c31c41b49aab4e351bd2a3ddff1a16284ea77b4
+      JWT_REFRESH_SECRET=494bdef45906781c61d147a507625ca1b40188a051cee45edfcca6a190057564304cccf51c5e7a571d33fdcf6cd1eae8b16caa490298f4c29cd4a099a83ff47af34a827a9bfdc58bf87617c64596b0ee18b4d687be3b73fcf53faaee1867c3011df87a55a41167be0064d0d3b84a9d8e4cc044620184593bd32ccf2e50128ce651a65a1d8c48fc1a716aeae80dd44348edeed27d4d20e8d1faabd16a3b1402b3e46f807ba4f83659878c524614a4673093fdb59acab3ad03f525a554ccb7f93deb2d6f831ebcf9db794f45ae86ea89dce940292181a90e86fddfdd9bc2df4d4b03e5764d0bb25ae96f06068d93186feb105c4f0ae4462c3ebd6fa725b42b0b16021a748917338b8df1b0891090cd623f9ed4911cd79a36e1a08ad2768b143c2efe7ec71cd2ec6417b92477e809f2229ebbc28980c2bb5ff6bd66e61da1df975c0873372bdc2f8ee06c8a2a4c7f4568f46e30de29edc37c6086a4df4568e9b2deb47257b9c32c436c478e2d17a8554ffc3c79d55792e4763f4f92ccedd0f9c22adfb2b44eb6086e6279b720d0e6bf83e764c9f42dc9f10e81728a880f927113ae872408d480608ad146b0a947d33b0bba7d3cab5cd8370e5923e70572b7ca665036ca9a02df311ffe1d90ca5465055b8f34f2ecbb209aa5f48e0c19e484ab617aa25514ceed5c435ef896bee611da7dfc1851a567d2f71796077ed5821d2390de
+      JWT_ACCESS_EXPIRES_IN=15m
+      JWT_REFRESH_EXPIRES_IN=7d
+      
+      # Password Hashing
+      BCRYPT_SALT_ROUNDS=12
+      
+      # =============================================================================
+      # DEVELOPMENT CONFIGURATION
+      # =============================================================================
+      # React Production Settings
+      GENERATE_SOURCEMAP=false
+      HOST=0.0.0.0
+      
+      # Logging
+      LOG_LEVEL=info
+      
+      # =============================================================================
+      # AI FEATURES (ENABLED FOR PRODUCTION)
+      # =============================================================================
+      # Master AI feature flag - enabled for production
+      AI_ENABLED=true
+      
+      # Ollama Configuration (Connected to external Ollama server)
+      OLLAMA_ENABLED=true
+      OLLAMA_BASE_URL=${OLLAMA_URL}
+      OLLAMA_MODEL=${OLLAMA_MODEL}
+      OLLAMA_TIMEOUT=60000
+      
+      # OpenAI Configuration (disabled for cost control)
+      OPENAI_ENABLED=false
+      OPENAI_API_KEY=your-openai-api-key-here
+      OPENAI_MODEL=gpt-4
+      OPENAI_TIMEOUT=30000
+      OPENAI_MAX_TOKENS=2000
+      
+      # AI Engine Priority
+      AI_PRIMARY_ENGINE=ollama
+      EOF
+    
+    # Show .env file (without secrets) for debugging
+    - echo "Generated .env file configuration:"
+    - cat .env | grep -v "SECRET\|PASSWORD\|_KEY" | head -20
+    
+    # Build individual service images for production using Docker Bake
+    - echo "Building Restaunax service images for production..."
+    - export DOCKER_TARGET=production
+    - COMPOSE_BAKE=true docker compose build --no-cache
+    
+    # Tag images for registry
+    - docker tag restaunax-client:latest $UNRAID_SERVER:5000/restaunax-client:latest
+    - docker tag restaunax-server:latest $UNRAID_SERVER:5000/restaunax-server:latest
+    
+    # Push images to registry
+    - echo "Pushing images to registry..."
+    - docker push $UNRAID_SERVER:5000/restaunax-client:latest
+    - docker push $UNRAID_SERVER:5000/restaunax-server:latest
+    
+    # Create deployment archive with configuration
+    - echo "Creating deployment package..."
+    - tar -czf restaunax-deploy.tar.gz docker-compose.production.yml .env docker/
+    
+  artifacts:
+    paths:
+      - restaunax-deploy.tar.gz
+      - .env
+    expire_in: 1 hour
+
+# Deploy to Unraid server
+deploy_to_unraid:
+  stage: deploy
+  image: alpine:latest
+  dependencies:
+    - build_images
+  before_script:
+    - apk add --no-cache openssh tar
+    - eval $(ssh-agent -s)
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - |
+      echo -e "Host $UNRAID_SERVER
+        StrictHostKeyChecking no
+        IdentitiesOnly yes
+        PreferredAuthentications publickey
+        PubkeyAuthentication yes
+        PasswordAuthentication no
+      " > ~/.ssh/config
+    - echo "$UNRAID_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-add ~/.ssh/id_rsa
+    
+  script:
+    - echo "Deploying Restaunax to Unraid server..."
+    
+    # Transfer deployment package to Unraid
+    - scp restaunax-deploy.tar.gz $UNRAID_USER@$UNRAID_SERVER:/tmp/
+    
+    # Deploy on Unraid server
+    - ssh $UNRAID_USER@$UNRAID_SERVER "
+        set -e &&
+        echo 'Setting up Restaunax deployment directory...' &&
+        mkdir -p /mnt/user/appdata/restaunax &&
+        cd /mnt/user/appdata/restaunax &&
+        
+        echo 'Extracting deployment package...' &&
+        tar -xzf /tmp/restaunax-deploy.tar.gz &&
+        rm /tmp/restaunax-deploy.tar.gz &&
+        
+        echo 'Pulling latest images from registry...' &&
+        docker pull $UNRAID_SERVER:5000/restaunax-client:latest &&
+        docker pull $UNRAID_SERVER:5000/restaunax-server:latest &&
+        
+        echo 'Stopping existing Restaunax services...' &&
+        docker compose -f docker-compose.production.yml -p restaunax down || true &&
+        
+        echo 'Pruning old images to free space...' &&
+        docker image prune -f &&
+        
+        echo 'Starting Restaunax services...' &&
+        docker compose -f docker-compose.production.yml -p restaunax up -d &&
+        
+        echo 'Waiting for services to be ready...' &&
+        sleep 30 &&
+        
+        echo 'Checking service status...' &&
+        docker compose -f docker-compose.production.yml -p restaunax ps &&
+        
+        echo 'Verifying frontend accessibility...' &&
+        curl -f http://localhost:${FRONTEND_PORT} > /dev/null && echo 'Frontend is responding' || echo 'Frontend check failed' &&
+        
+        echo 'Verifying backend API...' &&
+        curl -f http://localhost:8081/api/health > /dev/null && echo 'Backend API is responding' || echo 'Backend API check failed' &&
+        
+        echo 'Restaunax deployment completed successfully!'
+      "
+    
+    # Optional: Run post-deployment health checks
+    - echo "Running post-deployment verification..."
+    - ssh $UNRAID_USER@$UNRAID_SERVER "
+        cd /mnt/user/appdata/restaunax &&
+        echo 'Final service status:' &&
+        docker compose -f docker-compose.production.yml -p restaunax ps &&
+        echo 'Container logs (last 10 lines):' &&
+        docker compose -f docker-compose.production.yml -p restaunax logs --tail=10
+      "
+      
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+      when: on_success
+  
+  environment:
+    name: production
+    url: https://restaunax.turnersrus.com
+
+# Optional: Rollback job (manual trigger)
+rollback_deployment:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh
+    - eval $(ssh-agent -s)
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo "$UNRAID_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-add ~/.ssh/id_rsa
+  script:
+    - echo "Rolling back Restaunax deployment..."
+    - ssh $UNRAID_USER@$UNRAID_SERVER "
+        cd /mnt/user/appdata/restaunax &&
+        docker compose -f docker-compose.production.yml -p restaunax down &&
+        echo 'Restaunax services stopped. Manual intervention required for complete rollback.'
+      "
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+      when: manual
+      allow_failure: true

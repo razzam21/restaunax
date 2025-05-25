@@ -10,6 +10,16 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Health check endpoint (no authentication required)
+router.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    service: 'restaunax-api',
+    version: '1.0.0'
+  });
+});
+
 // Public routes (no authentication required)
 router.use('/auth', authRoutes);
 

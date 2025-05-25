@@ -1,4 +1,4 @@
-# Docker Compose configuration for Restaunax (development)
+# Docker Compose configuration for Restaunax (Production deployment on Unraid)
 
 # Define custom networks for better security
 networks:
@@ -12,16 +12,10 @@ networks:
 
 services:
   client:
-    build:
-      context: ./client
-      dockerfile: ../docker/client/Dockerfile
-      target: ${DOCKER_TARGET:-development}
-    image: restaunax-client:latest
+    image: ${UNRAID_SERVER:-localhost}:5000/restaunax-client:latest
+    container_name: restaunax-client
     ports:
-      - "${CLIENT_PORT:-3000}:3000"
-    volumes:
-      - ./client:/app
-      - /app/node_modules
+      - "${CLIENT_PORT:-3001}:3000"
     networks:
       - frontend
       - backend
@@ -32,36 +26,33 @@ services:
       - ./.env
     environment:
       - REACT_APP_API_URL=${REACT_APP_API_URL}
-      - NODE_ENV=${NODE_ENV}
-      - WATCHPACK_POLLING=${WATCHPACK_POLLING}
-      - HOST=${HOST}
-      - GENERATE_SOURCEMAP=${GENERATE_SOURCEMAP}
+      - NODE_ENV=${NODE_ENV:-production}
+      - HOST=${HOST:-0.0.0.0}
+      - GENERATE_SOURCEMAP=${GENERATE_SOURCEMAP:-false}
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          memory: 2G
-          cpus: '1.0'
-        reservations:
-          memory: 512M
+          memory: 1G
           cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   server:
-    build:
-      context: ./server
-      dockerfile: ../docker/server/Dockerfile
-      target: ${DOCKER_TARGET:-development}
-      args:
-        USER_ID: ${UID:-1001}
-        GROUP_ID: ${GID:-1001}
-    image: restaunax-server:latest
+    image: ${UNRAID_SERVER:-localhost}:5000/restaunax-server:latest
+    container_name: restaunax-server
     ports:
       - "${SERVER_EXTERNAL_PORT:-8081}:${SERVER_INTERNAL_PORT:-8080}"
     volumes:
-      - ./server:/app
-      - /app/node_modules
       - server_logs:/app/logs
-      - /var/run/docker.sock:/var/run/docker.sock:ro  # Enable Docker API access
+      - server_uploads:/app/uploads
     networks:
       - backend
       - database
@@ -75,31 +66,41 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
-      - NODE_ENV=${NODE_ENV}
-      - PORT=${SERVER_INTERNAL_PORT}
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=${SERVER_INTERNAL_PORT:-8080}
       - CORS_ORIGIN=${CORS_ORIGIN}
       - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
-      - JWT_ACCESS_EXPIRES_IN=${JWT_ACCESS_EXPIRES_IN}
-      - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN}
-      - BCRYPT_SALT_ROUNDS=${BCRYPT_SALT_ROUNDS}
-      - LOG_LEVEL=${LOG_LEVEL}
-      - OLLAMA_ENABLED=${OLLAMA_ENABLED}
+      - JWT_ACCESS_EXPIRES_IN=${JWT_ACCESS_EXPIRES_IN:-15m}
+      - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN:-7d}
+      - BCRYPT_SALT_ROUNDS=${BCRYPT_SALT_ROUNDS:-12}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      # AI Configuration
+      - AI_ENABLED=${AI_ENABLED:-true}
+      - OLLAMA_ENABLED=${OLLAMA_ENABLED:-true}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
       - OLLAMA_MODEL=${OLLAMA_MODEL}
-      - OLLAMA_TIMEOUT=${OLLAMA_TIMEOUT}
+      - OLLAMA_TIMEOUT=${OLLAMA_TIMEOUT:-60000}
+      - AI_PRIMARY_ENGINE=${AI_PRIMARY_ENGINE:-ollama}
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 1.5G
           cpus: '1.0'
         reservations:
           memory: 512M
           cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   db:
     image: postgres:14-alpine
+    container_name: restaunax-db
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -110,29 +111,42 @@ services:
     env_file:
       - ./.env
     environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB:-restaunax}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 1G
           cpus: '0.5'
         reservations:
           memory: 256M
           cpus: '0.25'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-restaunax}"]
+      interval: 15s
       timeout: 5s
       retries: 5
       start_period: 30s
     security_opt:
       - no-new-privileges:true
+    command: >
+      postgres 
+      -c max_connections=100
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
 
   redis:
     image: redis:7-alpine
+    container_name: restaunax-redis
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
@@ -142,47 +156,22 @@ services:
       - backend
     env_file:
       - ./.env
-    command: redis-server /usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 512M
           cpus: '0.25'
         reservations:
           memory: 128M
           cpus: '0.1'
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
+      interval: 15s
       timeout: 3s
       retries: 5
       start_period: 10s
-    security_opt:
-      - no-new-privileges:true
-
-  # Optional: Nginx reverse proxy for production-like setup
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
-    networks:
-      - frontend
-    depends_on:
-      - client
-      - server
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: '0.1'
-    profiles:
-      - production
     security_opt:
       - no-new-privileges:true
 
@@ -190,7 +179,13 @@ services:
 volumes:
   postgres_data:
     driver: local
+    name: restaunax_postgres_data
   redis_data:
-    driver: local
+    driver: local  
+    name: restaunax_redis_data
   server_logs:
     driver: local
+    name: restaunax_server_logs
+  server_uploads:
+    driver: local
+    name: restaunax_server_uploads
