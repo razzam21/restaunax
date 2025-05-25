@@ -72,37 +72,16 @@ COPY --from=builder /app/build /usr/share/nginx/html
 # Copy custom nginx configuration
 COPY --chown=nginx-user:nginx-user nginx.conf /etc/nginx/nginx.conf
 
-# Use envsubst for environment variable substitution
-RUN apk add --no-cache gettext
-
-# Create template for config file
-RUN echo 'window.CONFIG = { API_URL: "${REACT_APP_API_URL}" };' > /usr/share/nginx/html/config.js.template
-
-# Create entrypoint script
-COPY <<EOF /docker-entrypoint.sh
-#!/bin/sh
-echo "=== ENTRYPOINT SCRIPT EXECUTING ==="
-echo "REACT_APP_API_URL: \${REACT_APP_API_URL:-UNSET}"
-
-# Substitute environment variables in config template
-envsubst < /usr/share/nginx/html/config.js.template > /usr/share/nginx/html/config.js
-envsubst < /usr/share/nginx/html/config.js.template > /usr/share/nginx/html/config-override.js
-
-echo "Config file created:"
-cat /usr/share/nginx/html/config-override.js
-
-echo "=== STARTING NGINX ==="
-exec nginx -g "daemon off;"
-EOF
-
-RUN chmod +x /docker-entrypoint.sh
+# Copy and set up start script
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
 # Create nginx pid directory with correct permissions
 RUN mkdir -p /var/run/nginx && \
     chown -R nginx-user:nginx-user /var/run/nginx && \
     chown -R nginx-user:nginx-user /var/cache/nginx && \
     chown -R nginx-user:nginx-user /usr/share/nginx/html && \
-    chown nginx-user:nginx-user /docker-entrypoint.sh
+    chown nginx-user:nginx-user /start.sh
 
 # Switch to non-root user
 USER nginx-user
@@ -113,4 +92,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
 
-CMD ["/docker-entrypoint.sh"]
+CMD ["/start.sh"]
