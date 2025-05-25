@@ -274,43 +274,45 @@ IMPORTANT INSTRUCTIONS:
 6. Consider category balance and customer flow
 7. Provide specific, actionable recommendations
 
+CRITICAL: You MUST respond with valid JSON in exactly this structure. Do not include any text before or after the JSON.
+
 REQUIRED RESPONSE FORMAT (JSON):
 {
-  "confidence": number (0-1),
+  "confidence": 0.7,
   "summary": {
-    "total_items_analyzed": number,
-    "active_items": number,
-    "inactive_items": number,
-    "total_revenue_analyzed": number,
-    "analysis_period_days": number,
-    "top_category": "string"
+    "total_items_analyzed": 7,
+    "active_items": 7,
+    "inactive_items": 0,
+    "total_revenue_analyzed": 84990.13,
+    "analysis_period_days": 30,
+    "top_category": "Pizza"
   },
-  "item_performance": [
+  "items": [
     {
       "item_id": "string",
-      "name": "string",
+      "name": "string", 
       "category": "string",
-      "total_quantity": number,
-      "total_revenue": number,
-      "average_price": number,
-      "performance_rank": number,
-      "trend": "increasing|stable|decreasing",
-      "recommendation": "promote|optimize|remove|maintain"
+      "total_quantity": 0,
+      "total_revenue": 0.0,
+      "average_price": 0.0,
+      "performance_rank": 1,
+      "trend": "increasing",
+      "recommendation": "promote"
     }
   ],
-  "category_performance": [
+  "categories": [
     {
       "category": "string",
-      "item_count": number,
-      "total_revenue": number,
-      "performance_score": number (1-10)
+      "item_count": 0,
+      "total_revenue": 0.0,
+      "performance_score": 8
     }
   ],
   "insights": [
-    "string - key findings about menu performance"
+    "At least 3-5 specific insights about menu performance trends, customer preferences, and business opportunities"
   ],
   "recommendations": [
-    "string - specific actionable recommendations"
+    "At least 3-5 specific actionable recommendations with clear business rationale"
   ]
 }
 
