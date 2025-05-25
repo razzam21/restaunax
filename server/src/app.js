@@ -9,6 +9,9 @@ const errorHandler = require('./middleware/error');
 // Create Express app
 const app = express();
 
+// Trust proxy for rate limiting and IP detection
+app.set('trust proxy', true);
+
 // Middleware
 app.use(helmet()); // Security headers
 app.use(morgan('dev')); // HTTP request logger
