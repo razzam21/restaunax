@@ -467,16 +467,16 @@ async function generateOrdersReportData(restaurantId, options = {}) {
       const drawTableRow = (data, y, isHeader = false) => {
         let x = margin;
         
-        // Draw cell backgrounds for header
-        if (isHeader) {
-          doc.rect(margin, y, pageWidth, rowHeight).fillAndStroke('#f0f0f0', '#000');
-          doc.fillColor('#000');
-        }
-        
         // Draw cell borders and text
         data.forEach((text, i) => {
-          // Draw cell border
-          doc.rect(x, y, colWidths[i], rowHeight).stroke();
+          // Draw cell background for header
+          if (isHeader) {
+            doc.rect(x, y, colWidths[i], rowHeight).fillAndStroke('#f0f0f0', '#000');
+            doc.fillColor('#000');
+          } else {
+            // Draw cell border for data rows
+            doc.rect(x, y, colWidths[i], rowHeight).stroke();
+          }
           
           // Draw text with padding and truncation
           const cellText = String(text).substring(0, 20); // Truncate long text
