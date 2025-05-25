@@ -41,9 +41,20 @@ RUN mkdir -p /app/logs && \
 # Set Prisma binary target for Alpine
 ENV PRISMA_BINARY_TARGET=linux-musl
 
-# Skip Prisma generation in development - it will be handled by volume mount
-# Production builds will have the correct context and prisma directory
-RUN echo "Skipping Prisma generation in development stage"
+# Generate Prisma client - handle both local and production contexts
+RUN if [ -f "prisma/schema.prisma" ]; then \
+      echo "Found schema at prisma/schema.prisma"; \
+      npx prisma generate; \
+    elif [ -f "server/prisma/schema.prisma" ]; then \
+      echo "Found schema at server/prisma/schema.prisma - copying to correct location"; \
+      cp -r server/prisma .; \
+      npx prisma generate; \
+    else \
+      echo "No schema found - checking available files:"; \
+      find . -name "schema.prisma" -type f; \
+      ls -la; \
+      exit 1; \
+    fi
 
 # Switch to non-root user
 USER nodejs
@@ -72,8 +83,20 @@ RUN mkdir -p /app/logs && \
 # Set Prisma binary target for Alpine
 ENV PRISMA_BINARY_TARGET=linux-musl
 
-# Generate Prisma client
-RUN npx prisma generate
+# Generate Prisma client - handle both local and production contexts
+RUN if [ -f "prisma/schema.prisma" ]; then \
+      echo "Found schema at prisma/schema.prisma"; \
+      npx prisma generate; \
+    elif [ -f "server/prisma/schema.prisma" ]; then \
+      echo "Found schema at server/prisma/schema.prisma - copying to correct location"; \
+      cp -r server/prisma .; \
+      npx prisma generate; \
+    else \
+      echo "No schema found - checking available files:"; \
+      find . -name "schema.prisma" -type f; \
+      ls -la; \
+      exit 1; \
+    fi
 
 # Switch to non-root user
 USER nodejs
