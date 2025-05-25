@@ -58,9 +58,8 @@ RUN npm run build
 # Stage 4: Production build with nginx
 FROM nginx:alpine AS production
 
-# Install security updates and envsubst for environment variable substitution
+# Install security updates
 RUN apk update && apk upgrade && \
-    apk add --no-cache gettext && \
     rm -rf /var/cache/apk/*
 
 # Create non-root user for nginx
@@ -71,10 +70,10 @@ RUN addgroup -g 1001 -S nginx-user && \
 COPY --from=builder /app/build /usr/share/nginx/html
 
 # Copy custom nginx configuration
-COPY --chown=nginx-user:nginx-user nginx.conf /etc/nginx/nginx.conf.template
+COPY --chown=nginx-user:nginx-user nginx.conf /etc/nginx/nginx.conf
 
-# Create startup script to substitute environment variables
-RUN echo '#!/bin/sh\nenvsubst "$REACT_APP_API_URL" < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf\nexec nginx -g "daemon off;"' > /start.sh && \
+# Create startup script to generate config.js and start nginx
+RUN echo '#!/bin/sh\necho "window.CONFIG = { API_URL: \"${REACT_APP_API_URL:-/api}\" };" > /usr/share/nginx/html/config.js\nexec nginx -g "daemon off;"' > /start.sh && \
     chmod +x /start.sh
 
 # Create nginx pid directory with correct permissions
