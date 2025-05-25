@@ -95,4 +95,4 @@ RUN echo "=== DEBUG: Contents of package.json ===" && \
 
 # Use dumb-init for proper signal handling
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "src/server.js"]
+CMD ["sh", "-c", "echo '=== RUNTIME DEBUG: Current package.json ===' && cat package.json && echo '=== RUNTIME DEBUG: Scripts section ===' && grep -A 10 '\"scripts\"' package.json && echo '=== RUNTIME DEBUG: Current working directory ===' && pwd && echo '=== RUNTIME DEBUG: Files in current directory ===' && ls -la && echo '=== RUNTIME DEBUG: Starting server ===' && node src/server.js"]
