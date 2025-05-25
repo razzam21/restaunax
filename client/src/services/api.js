@@ -1,15 +1,21 @@
 import axios from 'axios';
 import { shouldAttemptRefresh, clearAuthData } from '../utils/tokenUtils';
 
-// Get API URL from runtime config (loaded by /config.js) or fallback to environment/default
+// Get API URL from runtime config with fallback
 const getApiUrl = () => {
-  if (typeof window !== 'undefined' && window.CONFIG && window.CONFIG.API_URL) {
+  // First check for runtime config
+  if (typeof window !== 'undefined' && window.CONFIG && window.CONFIG.API_URL && window.CONFIG.API_URL !== '/api') {
     return window.CONFIG.API_URL;
   }
-  return process.env.REACT_APP_API_URL || 'http://localhost:8081/api';
+  // Then check environment variable
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  // Default fallback
+  return 'http://localhost:8081/api';
 };
 
-const API_URL = getApiUrl();
+let API_URL = getApiUrl();
 
 console.log('Using API URL:', API_URL);
 
