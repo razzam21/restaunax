@@ -44,7 +44,7 @@ build_images:
     - sed -i "s|DATABASE_URL=postgresql://postgres:postgres@db:5432/restaunax|DATABASE_URL=postgresql://postgres:${DB_PASSWORD}@db:5432/restaunax|" .env
     
     # API and CORS configuration
-    - sed -i "s|REACT_APP_API_URL=http://localhost:8081/api|REACT_APP_API_URL=https://restaunax.turnersrus.com/api|" .env
+    - sed -i "s|REACT_APP_API_URL=http://localhost:8081/api|REACT_APP_API_URL=http://10.13.0.254:8081/api|" .env
     - sed -i "s|CORS_ORIGIN=http://localhost:3000|CORS_ORIGIN=${CORS_ORIGIN}|" .env
     
     # JWT Configuration - Generate secure random secrets
