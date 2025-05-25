@@ -409,6 +409,18 @@ The following features are planned for future releases:
   - Show engine status and connectivity
   - **Note**: Sensitive details like API keys will not be displayed for security
 
+### 🚀 Job Queue Improvements
+- **Immediate job visibility**: Jobs should be added to the active jobs list immediately when submitted, not just after completion
+  - Allow users to queue up multiple AI jobs without waiting for previous ones to finish
+  - Show job status (queued, processing, completed) in real-time
+  - Prevent duplicate job submissions for the same parameters
+
+### 📅 Date Picker Validation
+- **Prevent invalid date selection in AI insights**: Calendar components should not allow selecting today's date
+  - Today's date will throw errors in AI analysis as there's insufficient data
+  - Set minimum date to tomorrow or yesterday depending on the feature
+  - Show helpful error messages when invalid dates are selected
+
 ### 💰 AI Cost Tracking
 - **Add ability to track costs to each report**: Implement cost tracking for AI-generated reports
   - Track token usage per AI operation
