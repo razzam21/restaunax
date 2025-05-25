@@ -160,7 +160,7 @@ deploy_to_unraid:
           if [ ! -z \"\$OLD_DB_PASSWORD\" ]; then
             sed -i \"s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=\$OLD_DB_PASSWORD/\" .env &&
             sed -i \"s|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:\$OLD_DB_PASSWORD@db:5432/restaunax|\" .env &&
-            echo 'Database password preserved: \$OLD_DB_PASSWORD'
+            echo 'Database password preserved'
           fi &&
           if [ ! -z \"\$OLD_JWT_ACCESS\" ]; then
             sed -i \"s/^JWT_ACCESS_SECRET=.*/JWT_ACCESS_SECRET=\$OLD_JWT_ACCESS/\" .env &&
