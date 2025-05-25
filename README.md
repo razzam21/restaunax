@@ -471,6 +471,15 @@ The following features are planned for future releases:
   - Test reports with before/after screenshots for layout changes
   - Performance testing on different screen sizes (mobile vs desktop load times)
 
+### 🔐 Security & Authentication
+- **Auto logout when no activity in configurable timeout with warning popup before logout**: Implement session timeout security
+  - Configurable timeout period (15 minutes, 30 minutes, 1 hour, 2 hours, custom)
+  - Warning popup before logout (e.g., "You will be logged out in 60 seconds due to inactivity")
+  - "Stay logged in" button to extend session
+  - Background activity detection to reset timeout on user interaction
+  - Secure session management with proper token cleanup on timeout
+  - Admin configuration for different timeout policies per role/restaurant
+
 ### Additional Enhancements
 - Performance optimizations for large datasets
 - Advanced filtering options for reports
